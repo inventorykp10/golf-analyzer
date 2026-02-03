@@ -659,7 +659,13 @@
     @keyframes spinLoader { to { transform: rotate(360deg); } }
     .upload-loading-text { text-align: center; }
     .upload-loading-text p { margin: 4px 0; }
-    .upload-loading-text .sub { opacity: 0.6; font-size: 14px; }
+    .upload-loading-text .sub { opacity: 0.6; font-size: 14px; }   
+  /* 라운드 방식 선택 버튼 간격 */
+  .round-type-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
 
   </style>
 </head>
@@ -974,6 +980,16 @@
             <button class="secondary-btn" onclick="goToPage(2)" style="margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📊 통계</button>
             <button class="secondary-btn" onclick="goToPage(3)" style="margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📋 기록</button>
           </div>
+
+          <h2 class="section-title" 
+              style="text-align:center; 
+                    margin: 1.4vh 0 0.0vh 0;   /* 위 여백 줄이고 아래 여백 늘림 */
+                    font-size: 20px;
+                    font weight: 700">         
+            📄 스코어 카드로 코스 등록
+          </h2>
+
+
           <div class="home-quick-actions">
             <button class="secondary-btn" onclick="uploadCamera()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📷 카메라</button>
             <button class="secondary-btn" onclick="uploadGallery()" style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0; padding:3.2vh 8px; font-size:16px;">🖼️ 갤러리</button>
@@ -1016,16 +1032,19 @@
         <div class="section grow" style="justify-content:center;">
           <h2 class="section-title">라운드 방식 선택</h2>
           
-          <button class="secondary-btn" onclick="selectRoundType('existing')">
-            📋 코스 선택 (등록된 코스)
-          </button>
-          
-          <button class="secondary-btn" onclick="selectRoundType('new')">
-            ➕ 새 코스 (라운드하면서 등록)
-          </button>
+          <div class="round-type-buttons">
+            <button class="secondary-btn" onclick="selectRoundType('existing')">
+              📋 코스 선택 (등록된 코스)
+            </button>
+            
+            <button class="secondary-btn" onclick="selectRoundType('new')">
+              ➕ 새 코스 (라운드하면서 등록)
+            </button>
+          </div>
         </div>
       `;
     }
+
 
     window.selectRoundType = function(type) {
       if (type === 'existing') {
