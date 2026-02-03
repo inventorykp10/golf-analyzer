@@ -1,0 +1,205 @@
+=== CSS ===
+      30:       --shadow: 0 4px 12px rgba(0,0,0,0.1);
+>>>   31:       --nav-h: 60px; /* bottom nav 높이 */
+      32:     }
+      33: 
+---
+      41:       height: 100vh;
+>>>   42:       overflow: hidden;
+      43:     }
+      44: 
+---
+      54:     /* ========== PAGE CONTAINER ========== */
+>>>   55:     .page-container {
+      56:       height: calc(100vh - var(--nav-h));
+      57:       display: flex;
+---
+      55:     .page-container {
+>>>   56:       height: calc(100vh - var(--nav-h));
+      57:       display: flex;
+      58:       flex-direction: column;
+---
+      59:       padding: 2vh 4vw;
+>>>   60:       overflow: hidden; /* 기본: 스크롤 없음 */
+      61:     }
+      62: 
+---
+      63:     /* 스크롤이 필요한 페이지용 */
+>>>   64:     .page-container.scrollable {
+      65:       overflow-y: auto;
+      66:       padding-bottom: 2vh;
+---
+      64:     .page-container.scrollable {
+>>>   65:       overflow-y: auto;
+      66:       padding-bottom: 2vh;
+      67:     }
+---
+     107:     /* ========== SECTION ========== */
+>>>  108:     .section {
+     109:       background: white;
+     110:       padding: clamp(12px, 2vh, 20px) clamp(14px, 3vw, 20px);
+---
+     116: 
+>>>  117:     /* 홈 페이지의 메인 섹션 (flex grow로 남은 공간 채움) */
+     118:     .section.grow {
+     119:       flex: 1;
+---
+     117:     /* 홈 페이지의 메인 섹션 (flex grow로 남은 공간 채움) */
+>>>  118:     .section.grow {
+     119:       flex: 1;
+     120:       display: flex;
+---
+     118:     .section.grow {
+>>>  119:       flex: 1;
+     120:       display: flex;
+     121:       flex-direction: column;
+---
+     125: 
+>>>  126:     .section-title {
+     127:       font-size: clamp(14px, 2vh, 18px);
+     128:       font-weight: 600;
+---
+     375:       margin: 0 auto;
+>>>  376:       height: var(--nav-h);
+     377:       background: white;
+     378:       display: grid;
+---
+     408:       gap: clamp(8px, 1.5vh, 14px);
+>>>  409:       flex: 1;
+     410:       min-height: 0;
+     411:     }
+---
+     428:     .empty-state {
+>>>  429:       flex: 1;
+     430:       display: flex;
+     431:       flex-direction: column;
+---
+     495:       max-height: 90vh;
+>>>  496:       overflow-y: auto;
+     497:     }
+     498: 
+---
+     554:     .delete-btn:hover { background: #a03028; }
+>>>  555:     .course-info { flex: 1; }
+     556: 
+     557:     /* ========== ROUND CONTROL ========== */
+---
+     612: 
+>>>  613:     .section-divider { border-top: 2px solid var(--sand); margin: 12px 0; padding-top: 10px; }
+     614: 
+     615:     .subsection-title { font-size: 14px; font-weight: 600; color: var(--green-primary); margin-bottom: 10px; }
+---
+     628:     /* ========== HOME QUICK ACTIONS (2열) ========== */
+>>>  629:     .home-quick-actions {
+     630:       display: grid;
+     631:       grid-template-columns: 1fr 1fr;
+---
+     634: 
+>>>  635:     .home-quick-actions .secondary-btn { margin-bottom: 0; }
+     636: 
+     637:     /* ========== SCORECARD UPLOAD OVERLAY ========== */
+---
+     815:       const container = document.createElement('div');
+>>>  816:       container.className = 'page-container';
+     817: 
+     818:       // 라운드 진행 중인 경우
+---
+     972:           </button>
+>>>  973:           <div class="home-quick-actions">
+     974:             <button class="secondary-btn" onclick="goToPage(2)" style="margin-bottom:0;">📊 통계</button>
+     975:             <button class="secondary-btn" onclick="goToPage(3)" style="margin-bottom:0;">📋 기록</button>
+---
+     976:           </div>
+>>>  977:           <div class="home-quick-actions">
+     978:             <button class="secondary-btn" onclick="uploadCamera()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0;">📷 카메라</button>
+     979:             <button class="secondary-btn" onclick="uploadGallery()" style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0;">🖼️ 갤러리</button>
+---
+    1015:         
+>>> 1016:         <div class="section grow" style="justify-content:center;">
+    1017:           <h2 class="section-title">라운드 방식 선택</h2>
+    1018:           
+---
+    1045:         
+>>> 1046:         <div class="section grow" style="justify-content:center;">
+    1047:           <h2 class="section-title">등록된 코스</h2>
+    1048:           
+---
+    1122:         
+>>> 1123:         <div class="section grow" style="justify-content:center;">
+    1124:           <h2 class="section-title">코스 정보</h2>
+    1125:           
+---
+    1483:         
+>>> 1484:         <div class="section grow">
+    1485:           <h2 class="section-title">홀 정보</h2>
+    1486:           
+---
+    1609:     function renderShotInput(container) {
+>>> 1610:       container.classList.add('scrollable');
+    1611:       const shot = appState.currentShot;
+    1612:       const isTeeShot = shot.type === 'tee';
+---
+    2179: 
+>>> 2180:         <div class="section grow">
+    2181:           <h2 class="section-title">클럽별 평균 거리</h2>
+    2182:           <div class="club-list">
+---
+    2196:     function renderHistoryPage(container) {
+>>> 2197:       container.classList.add('scrollable');
+    2198:       const completedRounds = appState.data.rounds.filter(r => r.status === 'completed');
+    2199: 
+---
+    2244:     function renderSettingsPage(container) {
+>>> 2245:       container.classList.add('scrollable');
+    2246:       container.innerHTML = `
+    2247:         <h1 class="page-title">⚙️ 설정</h1>
+---
+    2346:         const container = document.createElement('div');
+>>> 2347:         container.className = 'page-container';
+    2348:         renderByPage(container);
+    2349:         app.appendChild(container);
+---
+
+=== renderHomePage ===
+ 951:     function renderHomePage(container) {
+ 952:       const inProgressRound = appState.data.rounds.find(r => r.status === 'in-progress');
+ 953: 
+ 954:       container.innerHTML = `
+ 955:         <h1 class="page-title">⛳ Golf Round Analyzer</h1>
+ 956:         
+ 957:         ${inProgressRound ? `
+ 958:           <div class="section">
+ 959:             <h2 class="section-title">진행 중인 라운드</h2>
+ 960:             <p style="margin-bottom: 12px;">
+ 961:               ${inProgressRound.course} • ${inProgressRound.holes.length}/18 홀 완료
+ 962:             </p>
+ 963:             <button class="primary-btn" onclick="resumeRound()">
+ 964:               라운드 계속하기
+ 965:             </button>
+ 966:           </div>
+ 967:         ` : ''}
+ 968: 
+ 969:         <div class="section">
+ 970:           <button class="primary-btn" onclick="goToPage(1)" style="margin-bottom:6px;">
+ 971:             🏌️ 새 라운드 시작
+ 972:           </button>
+ 973:           <div class="home-quick-actions">
+ 974:             <button class="secondary-btn" onclick="goToPage(2)" style="margin-bottom:0;">📊 통계</button>
+ 975:             <button class="secondary-btn" onclick="goToPage(3)" style="margin-bottom:0;">📋 기록</button>
+ 976:           </div>
+ 977:           <div class="home-quick-actions">
+ 978:             <button class="secondary-btn" onclick="uploadCamera()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0;">📷 카메라</button>
+ 979:             <button class="secondary-btn" onclick="uploadGallery()" style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0;">🖼️ 갤러리</button>
+ 980:           </div>
+ 981:           <button class="secondary-btn" onclick="openCourseRegistration()" style="margin-bottom:0;">
+ 982:             ➕ 새 코스 등록
+ 983:           </button>
+ 984:         </div>
+ 985: 
+ 986:         <div class="section" style="text-align: center; padding: 8px;">
+ 987:           <p style="opacity: 0.5; font-size: 12px;">v9.0.0 • Par 입력 개선</p>
+ 988:         </div>
+ 989:       `;
+ 990:     }
+ 991: 
+ 992:     window.goToPage = function(page) {
