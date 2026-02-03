@@ -986,11 +986,9 @@
       nav.className = 'bottom-nav';
 
       const pages = [
-        { icon: '🏠', label: '홈' },
-        { icon: '⛳', label: '라운드' },
-        { icon: '📊', label: '통계' },
-        { icon: '📋', label: '기록' },
-        { icon: '⚙️', label: '설정' }
+        { icon: '🏠', label: '홈', pageIndex: 0 },
+        { icon: '⛳', label: '라운드', pageIndex: 1 },
+        { icon: '⚙️', label: '설정', pageIndex: 4 }
       ];
 
       pages.forEach((page, index) => {
