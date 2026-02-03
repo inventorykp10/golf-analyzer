@@ -787,6 +787,7 @@
   <div id="app"></div>
 
   <input type="file" id="scorecard-upload" accept="image/*" style="display:none" onchange="handleScoreCardUpload(event)">
+  <input type="file" id="scorecard-camera" accept="image/*" capture="environment" style="display:none" onchange="handleScoreCardUpload(event)">
   <div id="upload-loading" class="upload-loading-overlay">
     <div class="upload-spinner"></div>
     <div class="upload-loading-text">
@@ -1102,8 +1103,11 @@
               📋 기록
             </button>
           </div>
-          <button class="secondary-btn" onclick="uploadScoreCard()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);">
-            📸 스코어카드로 코스 등록
+          <button class="secondary-btn" onclick="uploadCamera()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);">
+            📷 카메라로 찍기
+          </button>
+          <button class="secondary-btn" onclick="uploadGallery()" style="background:#5a9e4b;color:white;border-color:#5a9e4b;">
+            🖼️ 갤러리에서 선택
           </button>
           <button class="secondary-btn" onclick="openCourseRegistration()">
             ➕ 새 코스 등록
@@ -2486,7 +2490,11 @@
     // ========================================
     const GEMINI_API_KEY = 'AIzaSyDq99TUnFbwa_hWewjE4HqCzzWgsR_nNoY';
 
-    window.uploadScoreCard = function() {
+    window.uploadCamera = function() {
+      document.getElementById('scorecard-camera').click();
+    };
+
+    window.uploadGallery = function() {
       document.getElementById('scorecard-upload').click();
     };
 
