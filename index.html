@@ -28,6 +28,7 @@
       --red: #c44536;
       --blue: #4a90e2;
       --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --nav-h: 60px; /* bottom nav 높이 */
     }
 
     body {
@@ -37,31 +38,41 @@
       -webkit-font-smoothing: antialiased;
       margin: 0;
       padding: 0;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
 
     #app {
       max-width: 600px;
       margin: 0 auto;
-      min-height: 100vh;
+      height: 100vh;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
+    /* ========== PAGE CONTAINER ========== */
     .page-container {
-      flex: 1;
-      padding: 12px 14px;
-      padding-bottom: 70px;
-      overflow-y: auto;
+      height: calc(100vh - var(--nav-h));
+      display: flex;
+      flex-direction: column;
+      padding: 2vh 4vw;
+      overflow: hidden; /* 기본: 스크롤 없음 */
     }
 
-    /* Back Button */
+    /* 스크롤이 필요한 페이지용 */
+    .page-container.scrollable {
+      overflow-y: auto;
+      padding-bottom: 2vh;
+    }
+
+    /* ========== BACK BUTTON ========== */
     .back-button {
       position: fixed;
       top: 16px;
       left: 16px;
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background: white;
       border: 2px solid var(--green-primary);
       border-radius: 50%;
@@ -71,7 +82,7 @@
       cursor: pointer;
       box-shadow: var(--shadow);
       z-index: 999;
-      font-size: 20px;
+      font-size: 18px;
       color: var(--green-primary);
       transition: all 0.2s;
     }
@@ -81,55 +92,70 @@
       color: white;
     }
 
+    /* ========== PAGE TITLE ========== */
     .page-title {
-      font-size: 22px;
+      font-size: clamp(20px, 3vh, 28px);
       font-weight: 700;
       color: var(--green-primary);
-      margin-bottom: 10px;
+      margin-bottom: 1.5vh;
       font-family: 'Bebas Neue', cursive;
       letter-spacing: 1px;
       text-align: center;
+      flex-shrink: 0;
     }
 
+    /* ========== SECTION ========== */
     .section {
-      margin-bottom: 8px;
       background: white;
-      padding: 12px 14px;
+      padding: clamp(12px, 2vh, 20px) clamp(14px, 3vw, 20px);
       border-radius: 16px;
       box-shadow: var(--shadow);
+      margin-bottom: 1.5vh;
+      flex-shrink: 0;
+    }
+
+    /* 홈 페이지의 메인 섹션 (flex grow로 남은 공간 채움) */
+    .section.grow {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
     }
 
     .section-title {
-      font-size: 15px;
+      font-size: clamp(14px, 2vh, 18px);
       font-weight: 600;
       color: var(--green-primary);
-      margin-bottom: 8px;
+      margin-bottom: 1vh;
+      flex-shrink: 0;
     }
 
-    /* Shot Info Header */
+    /* ========== SHOT HEADER ========== */
     .shot-header {
       background: white;
-      padding: 10px 12px;
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 2vw, 16px);
       border-radius: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 1vh;
       box-shadow: var(--shadow);
+      flex-shrink: 0;
     }
 
     .shot-info {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .hole-num {
-      font-size: 16px;
+      font-size: clamp(14px, 2vh, 16px);
       font-weight: 600;
       color: var(--green-primary);
     }
 
     .tee-badge {
-      padding: 4px 10px;
+      padding: 3px 10px;
       border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
@@ -142,7 +168,7 @@
     }
 
     .distance-badge {
-      padding: 4px 10px;
+      padding: 3px 10px;
       border-radius: 12px;
       font-size: 12px;
       background: var(--sand);
@@ -150,55 +176,50 @@
     }
 
     .shot-number {
-      font-size: 16px;
+      font-size: clamp(15px, 2vh, 18px);
       font-weight: 700;
       color: var(--green-primary);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
-    /* Previous Shots */
+    /* ========== PREVIOUS SHOTS ========== */
     .previous-shots {
       background: var(--sand);
-      padding: 8px 10px;
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
       border-radius: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 1vh;
       font-size: 13px;
+      flex-shrink: 0;
     }
 
-    .prev-shot {
-      margin-bottom: 4px;
-      opacity: 0.8;
-    }
+    .prev-shot { margin-bottom: 3px; opacity: 0.8; }
+    .prev-shot:last-child { margin-bottom: 0; }
 
-    .prev-shot:last-child {
-      margin-bottom: 0;
-    }
-
-    /* Input Sections */
+    /* ========== INPUT SECTIONS ========== */
     .input-section {
-      margin-bottom: 10px;
+      margin-bottom: clamp(6px, 1.2vh, 14px);
     }
 
     .input-section label {
       display: block;
-      font-size: 14px;
+      font-size: clamp(13px, 1.8vh, 15px);
       font-weight: 600;
       color: var(--brown);
-      margin-bottom: 6px;
+      margin-bottom: clamp(4px, 0.7vh, 8px);
     }
 
     .optional-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 400;
       opacity: 0.6;
     }
 
     .text-input {
       width: 100%;
-      padding: 8px 10px;
+      padding: clamp(8px, 1.3vh, 12px);
       border: 2px solid var(--sand);
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 16px;
       font-family: 'Noto Sans KR', sans-serif;
     }
 
@@ -213,55 +234,49 @@
       -webkit-appearance: none;
       margin: 0;
     }
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
+    input[type="number"] { -moz-appearance: textfield; }
 
     .select-input {
       width: 100%;
-      padding: 8px 10px;
+      padding: clamp(8px, 1.3vh, 12px);
       border: 2px solid var(--sand);
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 16px;
       font-family: 'Noto Sans KR', sans-serif;
       background: white;
     }
 
-    /* Buttons */
+    /* ========== BUTTONS ========== */
     .primary-btn {
       width: 100%;
-      padding: 12px;
+      padding: clamp(12px, 2vh, 18px);
       background: var(--green-primary);
       color: white;
       border: none;
       border-radius: 12px;
-      font-size: 15px;
+      font-size: clamp(15px, 2vh, 17px);
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      flex-shrink: 0;
     }
 
-    .primary-btn:hover {
-      background: var(--green-secondary);
-    }
-
-    .primary-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
+    .primary-btn:hover { background: var(--green-secondary); }
+    .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
 
     .secondary-btn {
       width: 100%;
-      padding: 10px;
+      padding: clamp(10px, 1.6vh, 16px);
       background: white;
       color: var(--green-primary);
       border: 2px solid var(--green-primary);
       border-radius: 12px;
-      font-size: 15px;
+      font-size: clamp(14px, 1.9vh, 16px);
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      margin-bottom: 6px;
+      margin-bottom: 0;
+      flex-shrink: 0;
     }
 
     .secondary-btn:hover {
@@ -272,17 +287,17 @@
     .button-group {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: clamp(6px, 1vh, 10px);
     }
 
     .button-group-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: clamp(6px, 1vh, 10px);
     }
 
     .choice-btn {
-      padding: 8px 4px;
+      padding: clamp(8px, 1.3vh, 12px) 4px;
       background: white;
       border: 2px solid var(--sand);
       border-radius: 8px;
@@ -292,9 +307,7 @@
       font-weight: 500;
     }
 
-    .choice-btn:hover {
-      border-color: var(--green-light);
-    }
+    .choice-btn:hover { border-color: var(--green-light); }
 
     .choice-btn.selected {
       background: var(--green-primary);
@@ -302,19 +315,19 @@
       border-color: var(--green-primary);
     }
 
-    /* Checkbox Group for Multiple Selection */
+    /* ========== CHECKBOX GROUP ========== */
     .checkbox-group {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: clamp(5px, 0.8vh, 8px);
     }
 
     .checkbox-label {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 7px;
+      gap: 6px;
+      padding: clamp(6px, 1vh, 10px);
       background: white;
       border: 2px solid var(--sand);
       border-radius: 8px;
@@ -323,9 +336,7 @@
       font-size: 13px;
     }
 
-    .checkbox-label:hover {
-      border-color: var(--green-light);
-    }
+    .checkbox-label:hover { border-color: var(--green-light); }
 
     .checkbox-label.selected {
       background: var(--green-primary);
@@ -333,16 +344,14 @@
       border-color: var(--green-primary);
     }
 
-    .checkbox-label input[type="checkbox"] {
-      display: none;
-    }
+    .checkbox-label input[type="checkbox"] { display: none; }
 
-    /* Club Recommendation */
+    /* ========== INFO BOXES ========== */
     .club-recommendation {
       background: #e3f2fd;
       border-left: 4px solid var(--blue);
-      padding: 8px 10px;
-      margin-bottom: 8px;
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
+      margin-bottom: 1vh;
       border-radius: 4px;
       font-size: 13px;
     }
@@ -350,13 +359,13 @@
     .info-box {
       background: #e3f2fd;
       border-left: 4px solid var(--blue);
-      padding: 8px 10px;
-      margin-bottom: 8px;
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
+      margin-bottom: 1vh;
       border-radius: 4px;
       font-size: 13px;
     }
 
-    /* Bottom Navigation */
+    /* ========== BOTTOM NAVIGATION ========== */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -364,6 +373,7 @@
       right: 0;
       max-width: 600px;
       margin: 0 auto;
+      height: var(--nav-h);
       background: white;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -375,85 +385,67 @@
     .nav-btn {
       border: none;
       background: transparent;
-      padding: 8px 6px;
+      padding: 10px 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
+      justify-content: center;
+      gap: 3px;
       cursor: pointer;
       transition: all 0.2s;
       color: var(--brown);
       opacity: 0.6;
     }
 
-    .nav-btn.active {
-      color: var(--green-primary);
-      opacity: 1;
-    }
+    .nav-btn.active { color: var(--green-primary); opacity: 1; }
+    .nav-btn-icon { font-size: 22px; }
+    .nav-btn-label { font-size: 11px; font-weight: 500; }
 
-    .nav-btn-icon {
-      font-size: 22px;
-    }
-
-    .nav-btn-label {
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    /* Stats */
+    /* ========== STATS ========== */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
+      gap: clamp(8px, 1.5vh, 14px);
+      flex: 1;
+      min-height: 0;
     }
 
     .stat-card {
       background: white;
-      padding: 10px 6px;
+      padding: clamp(10px, 1.8vh, 18px) 8px;
       border-radius: 12px;
       box-shadow: var(--shadow);
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .stat-icon {
-      font-size: 22px;
-      margin-bottom: 2px;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--brown);
-      opacity: 0.7;
-      margin-bottom: 4px;
-    }
-
-    .stat-value {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--green-primary);
-    }
+    .stat-icon { font-size: clamp(22px, 3.5vh, 30px); margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: var(--brown); opacity: 0.7; margin-bottom: 4px; }
+    .stat-value { font-size: clamp(20px, 3vh, 26px); font-weight: 700; color: var(--green-primary); }
 
     .empty-state {
-      text-align: center;
-      padding: 40px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       opacity: 0.6;
     }
 
-    .empty-state p {
-      margin-bottom: 8px;
-    }
+    .empty-state p { margin-bottom: 8px; }
 
-    /* Rounds List */
+    /* ========== ROUNDS LIST ========== */
     .rounds-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: clamp(8px, 1.2vh, 12px);
     }
 
     .round-card {
       background: white;
-      padding: 16px;
+      padding: clamp(10px, 1.5vh, 16px);
       border-radius: 12px;
       box-shadow: var(--shadow);
       display: flex;
@@ -461,57 +453,38 @@
       align-items: center;
     }
 
-    .round-header-info h3 {
-      font-size: 16px;
-      color: var(--green-primary);
-      margin-bottom: 4px;
-    }
+    .round-header-info h3 { font-size: 15px; color: var(--green-primary); margin-bottom: 3px; }
+    .round-date { font-size: 12px; opacity: 0.6; }
+    .round-score-info { text-align: right; }
+    .total-score { font-size: clamp(22px, 3vh, 28px); font-weight: 700; color: var(--green-primary); }
 
-    .round-date {
-      font-size: 13px;
-      opacity: 0.6;
-    }
-
-    .round-score-info {
-      text-align: right;
-    }
-
-    .total-score {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--green-primary);
-    }
-
+    /* ========== CLUB LIST ========== */
     .club-list {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: clamp(5px, 0.8vh, 8px);
     }
 
     .club-item {
-      padding: 6px 8px;
+      padding: clamp(6px, 1vh, 10px) 8px;
       background: var(--sand);
       border-radius: 8px;
       font-size: 13px;
     }
 
-    /* Modal */
+    /* ========== MODAL ========== */
     .modal {
       display: none;
       position: fixed;
       z-index: 2000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
       background-color: rgba(0,0,0,0.5);
       align-items: center;
       justify-content: center;
     }
 
-    .modal.active {
-      display: flex;
-    }
+    .modal.active { display: flex; }
 
     .modal-content {
       background: white;
@@ -527,17 +500,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
-    .modal-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--green-primary);
-    }
+    .modal-title { font-size: 20px; font-weight: 700; color: var(--green-primary); }
 
     .close-btn {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: bold;
       color: var(--brown);
       cursor: pointer;
@@ -548,120 +517,82 @@
       height: 32px;
     }
 
-    /* Course Selection */
+    /* ========== COURSE SELECTION ========== */
     .course-btn {
       width: 100%;
-      padding: 10px 12px;
+      padding: clamp(10px, 1.5vh, 16px);
       background: white;
       border: 2px solid var(--sand);
       border-radius: 12px;
       text-align: left;
       cursor: pointer;
-      margin-bottom: 6px;
+      margin-bottom: clamp(6px, 1vh, 12px);
       transition: all 0.2s;
     }
 
-    .course-btn:hover {
-      border-color: var(--green-primary);
-    }
+    .course-btn:hover { border-color: var(--green-primary); }
+    .course-name { font-size: 15px; font-weight: 600; color: var(--green-primary); margin-bottom: 3px; }
+    .course-details { font-size: 13px; opacity: 0.7; }
 
-    .course-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--green-primary);
-      margin-bottom: 4px;
-    }
-
-    .course-details {
-      font-size: 13px;
-      opacity: 0.7;
-    }
-
-    /* Course Management Buttons */
-    .btn-group {
-      display: flex;
-      gap: 8px;
-    }
+    /* ========== COURSE MANAGEMENT BUTTONS ========== */
+    .btn-group { display: flex; gap: 6px; }
 
     .edit-btn, .delete-btn {
-      padding: 8px 16px;
+      padding: 6px 12px;
       border: none;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
       font-family: 'Noto Sans KR', sans-serif;
     }
 
-    .edit-btn {
-      background: var(--green-primary);
-      color: white;
-    }
+    .edit-btn { background: var(--blue); color: white; }
+    .edit-btn:hover { background: var(--green-secondary); }
+    .delete-btn { background: var(--red); color: white; }
+    .delete-btn:hover { background: #a03028; }
+    .course-info { flex: 1; }
 
-    .edit-btn:hover {
-      background: var(--green-secondary);
-    }
-
-    .delete-btn {
-      background: var(--red);
-      color: white;
-    }
-
-    .delete-btn:hover {
-      background: #a03028;
-    }
-
-    .course-info {
-      flex: 1;
-    }
-
-    /* Round Control */
+    /* ========== ROUND CONTROL ========== */
     .round-control-panel {
       background: var(--sand);
-      padding: 8px 12px;
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 2vw, 16px);
       border-radius: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 1vh;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
-    .round-info {
-      font-size: 14px;
-      opacity: 0.8;
-    }
+    .round-info { font-size: 14px; opacity: 0.8; }
 
     .finish-round-btn {
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: var(--red);
       color: white;
       border: none;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
     }
 
-    /* Course Registration */
+    /* ========== COURSE REGISTRATION (modal) ========== */
     .hole-row {
       display: grid;
-      grid-template-columns: 35px 60px 90px 90px;
-      gap: 6px;
-      margin-bottom: 8px;
+      grid-template-columns: 30px 55px 80px 80px;
+      gap: 5px;
+      margin-bottom: 6px;
       align-items: center;
     }
 
-    .hole-number {
-      text-align: center;
-      font-weight: 600;
-      color: var(--green-primary);
-      font-size: 14px;
-    }
+    .hole-number { text-align: center; font-weight: 600; color: var(--green-primary); font-size: 13px; }
 
     .hole-row select,
     .hole-row input[type="number"] {
-      padding: 8px 4px;
+      padding: 6px 3px;
       border: 2px solid var(--sand);
       border-radius: 6px;
       font-size: 13px;
@@ -670,92 +601,40 @@
 
     .par-summary {
       background: var(--sand);
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
-      margin-bottom: 16px;
-    }
-
-    .par-summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .par-summary-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .par-summary-row.total {
-      font-weight: 600;
-      padding-top: 6px;
-      border-top: 1px solid var(--brown);
-      opacity: 0.3;
-    }
-
-    .section-divider {
-      border-top: 2px solid var(--sand);
-      margin: 16px 0;
-      padding-top: 12px;
-    }
-
-    .subsection-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--green-primary);
       margin-bottom: 12px;
     }
 
+    .par-summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+    .par-summary-row:last-child { margin-bottom: 0; }
+    .par-summary-row.total { font-weight: 600; padding-top: 5px; border-top: 1px solid var(--brown); opacity: 0.3; }
+
+    .section-divider { border-top: 2px solid var(--sand); margin: 12px 0; padding-top: 10px; }
+
+    .subsection-title { font-size: 14px; font-weight: 600; color: var(--green-primary); margin-bottom: 10px; }
+
     .holes-header {
       display: grid;
-      grid-template-columns: 35px 60px 90px 90px;
-      gap: 6px;
-      margin-bottom: 8px;
+      grid-template-columns: 30px 55px 80px 80px;
+      gap: 5px;
+      margin-bottom: 6px;
       font-weight: 600;
       font-size: 11px;
       color: var(--green-primary);
       text-align: center;
     }
 
-    .btn-group {
-      display: flex;
-      gap: 8px;
-    }
-
-    .edit-btn, .delete-btn {
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      border: none;
-    }
-
-    .edit-btn {
-      background: var(--blue);
-      color: white;
-    }
-
-    .delete-btn {
-      background: var(--red);
-      color: white;
-    }
-
-    .course-info {
-      flex: 1;
-    }
-
-    /* Home Layout Improvement */
+    /* ========== HOME QUICK ACTIONS (2열) ========== */
     .home-quick-actions {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(6px, 1vh, 10px);
     }
 
-    .home-quick-actions .secondary-btn {
-      margin-bottom: 0;
-    }
+    .home-quick-actions .secondary-btn { margin-bottom: 0; }
 
-    /* Scorecard Upload */
+    /* ========== SCORECARD UPLOAD OVERLAY ========== */
     .upload-loading-overlay {
       display: none;
       position: fixed;
@@ -781,6 +660,7 @@
     .upload-loading-text { text-align: center; }
     .upload-loading-text p { margin: 4px 0; }
     .upload-loading-text .sub { opacity: 0.6; font-size: 14px; }
+
   </style>
 </head>
 <body>
@@ -1133,7 +1013,7 @@
       container.innerHTML = `
         <h1 class="page-title">⛳ 새 라운드</h1>
         
-        <div class="section">
+        <div class="section grow" style="justify-content:center;">
           <h2 class="section-title">라운드 방식 선택</h2>
           
           <button class="secondary-btn" onclick="selectRoundType('existing')">
@@ -1163,7 +1043,7 @@
       container.innerHTML = `
         <h1 class="page-title">코스 선택</h1>
         
-        <div class="section">
+        <div class="section grow" style="justify-content:center;">
           <h2 class="section-title">등록된 코스</h2>
           
           ${appState.data.courses.map(course => {
@@ -1240,7 +1120,7 @@
       container.innerHTML = `
         <h1 class="page-title">새 코스</h1>
         
-        <div class="section">
+        <div class="section grow" style="justify-content:center;">
           <h2 class="section-title">코스 정보</h2>
           
           <div class="input-section">
@@ -1601,7 +1481,7 @@
           </div>
         ` : ''}
         
-        <div class="section">
+        <div class="section grow">
           <h2 class="section-title">홀 정보</h2>
           
           ${isNewCourse ? `
@@ -1727,6 +1607,7 @@
     // SHOT INPUT (테스트1 피드백 완전 반영)
     // ========================================
     function renderShotInput(container) {
+      container.classList.add('scrollable');
       const shot = appState.currentShot;
       const isTeeShot = shot.type === 'tee';
       const isPar3 = appState.holePar === 3;
@@ -2296,7 +2177,7 @@
           </div>
         </div>
 
-        <div class="section">
+        <div class="section grow">
           <h2 class="section-title">클럽별 평균 거리</h2>
           <div class="club-list">
             ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => `
@@ -2313,6 +2194,7 @@
     // HISTORY PAGE
     // ========================================
     function renderHistoryPage(container) {
+      container.classList.add('scrollable');
       const completedRounds = appState.data.rounds.filter(r => r.status === 'completed');
 
       if (completedRounds.length === 0) {
@@ -2360,6 +2242,7 @@
     // SETTINGS PAGE
     // ========================================
     function renderSettingsPage(container) {
+      container.classList.add('scrollable');
       container.innerHTML = `
         <h1 class="page-title">⚙️ 설정</h1>
         
