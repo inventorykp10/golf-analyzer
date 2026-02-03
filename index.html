@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -364,7 +364,7 @@
       margin: 0 auto;
       background: white;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       border-top: 1px solid var(--sand);
       box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
       z-index: 1000;
@@ -995,13 +995,13 @@
 
       pages.forEach((page, index) => {
         const btn = document.createElement('button');
-        btn.className = `nav-btn ${appState.currentPage === index ? 'active' : ''}`;
+        btn.className = `nav-btn ${appState.currentPage === page.pageIndex ? 'active' : ''}`;
         btn.innerHTML = `
           <div class="nav-btn-icon">${page.icon}</div>
           <div class="nav-btn-label">${page.label}</div>
         `;
         btn.onclick = () => {
-          appState.currentPage = index;
+          appState.currentPage = page.pageIndex;
           render();
         };
         nav.appendChild(btn);
@@ -2431,3 +2431,5 @@
 </body>
 </html>
 <!-- test -->
+
+
