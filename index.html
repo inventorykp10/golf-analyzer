@@ -986,18 +986,24 @@
                     margin: 1.4vh 0 0.0vh 0;   /* 위 여백 줄이고 아래 여백 늘림 */
                     font-size: 20px;
                     font weight: 700">         
-            📄 스코어 카드로 코스 등록
+            📄 스코어 카드 이미지로 코스 등록
           </h2>
 
 
+          <div style="margin-top: -5.0vh;">
           <div class="home-quick-actions">
-            <button class="secondary-btn" onclick="uploadCamera()" style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📷 카메라</button>
-            <button class="secondary-btn" onclick="uploadGallery()" style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0; padding:3.2vh 8px; font-size:16px;">🖼️ 갤러리</button>
+            <button class="secondary-btn" onclick="uploadCamera()" 
+              style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0; padding:3.2vh 8px; font-size:16px;">
+              📷 카메라
+            </button>
+
+            <button class="secondary-btn" onclick="uploadGallery()" 
+              style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0; padding:3.2vh 8px; font-size:16px;">
+              🖼️ 갤러리
+            </button>
           </div>
-          <button class="secondary-btn" onclick="openCourseRegistration()" style="margin-bottom:0; padding:3vh 16px; font-size:16px;">
-            ➕ 새 코스 등록
-          </button>
         </div>
+
 
         <div style="text-align: center; padding: 6px; flex-shrink:0;">
           <p style="opacity: 0.5; font-size: 12px;">v9.0.0 • Par 입력 개선</p>
