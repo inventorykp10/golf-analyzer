@@ -819,6 +819,7 @@
     // ========================================
     const appState = {
       currentPage: 0,
+      pageHistory: [0],
       data: {
         rounds: [],
         courses: [...DEFAULT_COURSES]
@@ -928,6 +929,21 @@
 
       // 라운드 진행 중이 아닐 때만 하단 네비게이션 표시
       if (!appState.activeRound) {
+        // 홈이 아닌 페이지에서 백버튼 표시
+        if (appState.currentPage !== 0) {
+          const backBtn = document.createElement('button');
+          backBtn.className = 'back-button';
+          backBtn.innerHTML = '&#8592;';
+          backBtn.onclick = function() {
+            if (appState.pageHistory.length > 0) {
+              appState.currentPage = appState.pageHistory.pop();
+            } else {
+              appState.currentPage = 0;
+            }
+            render();
+          };
+          app.appendChild(backBtn);
+        }
         app.appendChild(renderBottomNav());
       }
 
@@ -1001,6 +1017,7 @@
           <div class="nav-btn-label">${page.label}</div>
         `;
         btn.onclick = () => {
+          appState.pageHistory.push(appState.currentPage);
           appState.currentPage = page.pageIndex;
           render();
         };
@@ -1063,6 +1080,7 @@
     }
 
     window.goToPage = function(page) {
+      appState.pageHistory.push(appState.currentPage);
       appState.currentPage = page;
       render();
     };
