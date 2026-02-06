@@ -2411,8 +2411,38 @@
 
 
     // ========================================
-    // GEMINI API - SCORECARD UPLOAD
+    // SCORECARD UPLOAD (via Proxy Server)
     // ========================================
+    // ✅ GitHub Pages(프론트)에는 API Key를 두지 않습니다.
+    // ✅ Node.js 서버(프록시)에서만 GEMINI_API_KEY를 사용합니다.
+
+    const SCORECARD_PROXY_STORAGE_KEY = 'golf_analyzer_scorecard_proxy_base_url';
+
+    function normalizeBaseUrl(url) {
+      return (url || '').trim().replace(/\/+$/, '');
+    }
+
+    function getScorecardProxyBaseUrl() {
+      const saved = normalizeBaseUrl(localStorage.getItem(SCORECARD_PROXY_STORAGE_KEY));
+      if (saved) return saved;
+
+      const input = prompt(
+        '스코어카드 분석 서버 주소를 입력하세요.\n\n' +
+        '예: https://your-node-server.com\n\n' +
+        '(취소하면 업로드는 실패합니다)'
+      );
+
+      const normalized = normalizeBaseUrl(input);
+      if (!normalized) return '';
+      localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, normalized);
+      return normalized;
+    }
+
+    // 필요 시 주소를 다시 입력하도록 초기화
+    window.resetScorecardServer = function() {
+      localStorage.removeItem(SCORECARD_PROXY_STORAGE_KEY);
+      alert('스코어카드 서버 주소가 초기화되었습니다. 다음 업로드 때 다시 입력됩니다.');
+    };
 
     window.uploadCamera = function() {
       document.getElementById('scorecard-camera').click();
@@ -2427,11 +2457,21 @@
       if (!file) return;
       event.target.value = '';
 
+      const proxyBaseUrl = getScorecardProxyBaseUrl();
+      if (!proxyBaseUrl) {
+        alert('❌ 스코어카드 처리 실패:\n서버 주소가 입력되지 않았습니다.');
+        return;
+      }
+
       document.getElementById('upload-loading').classList.add('active');
 
       try {
-        const extractedData = await callScorecardProxy(file);
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        const extractedData = await callScorecardProxy(proxyBaseUrl, base64Data, mimeType);
         fillCourseFromAI(extractedData);
+
       } catch (error) {
         console.error('Scorecard error:', error);
         alert('❌ 스코어카드 처리 실패:\n' + (error && error.message ? error.message : String(error)));
@@ -2440,61 +2480,32 @@
       }
     };
 
-        function fileToBase64(file) {
+    function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
     }
 
-    function getProxyBaseUrl() {
-      // ✅ GitHub Pages에서는 프론트와 Node 서버가 보통 다른 도메인입니다.
-      // 처음 실행 시 한 번만 서버 주소를 입력하면 localStorage에 저장됩니다.
-      let base = localStorage.getItem('golfAnalyzerProxyBaseUrl') || '';
-      base = (base || '').trim();
-      if (!base) {
-        const input = prompt(
-          '스코어카드 분석 서버 주소를 입력하세요.\n예: https://your-node-server.com\n(취소하면 업로드는 실패합니다)',
-          ''
-        );
-        if (input && input.trim()) {
-          base = input.trim();
-          // 끝의 슬래시 제거
-          base = base.replace(/\/+$/, '');
-          localStorage.setItem('golfAnalyzerProxyBaseUrl', base);
-        }
-      } else {
-        base = base.replace(/\/+$/, '');
-      }
-      return base;
-    }
-
-    async function callScorecardProxy(file) {
-      const base = getProxyBaseUrl();
-      const url = (base ? base : '') + '/api/scorecard';
-
-      const formData = new FormData();
-      // 서버에서 upload.single('image') 형태로 받는 것을 기준으로 합니다.
-      formData.append('image', file, file.name || 'scorecard.jpg');
-
-      const response = await fetch(url, {
+    async function callScorecardProxy(proxyBaseUrl, base64Data, mimeType) {
+      const response = await fetch(proxyBaseUrl + '/api/scorecard', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Data, mimeType })
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error('프록시 서버 호출 실패: ' + response.status + ' ' + errText);
+        throw new Error('프록시 호출 실패: ' + response.status + ' ' + errText);
       }
 
-      const data = await response.json();
-      return data;
+      // 서버는 최종 JSON(코스 정보)을 반환해야 합니다.
+      return await response.json();
     }
 
-    
-    function fillCourseFromAI(data) {
+function fillCourseFromAI(data) {
   const holes = data.holes || 18;
   let par = data.par || [];
   let distBlue = data.distances_blue || [];
