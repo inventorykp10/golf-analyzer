@@ -790,6 +790,37 @@
                 const holes = c.holes || (c.par ? c.par.length : 18) || 18;
                 c.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
               }
+
+    // ========================================
+    // GLOBAL ERROR GUARD (빈 화면 방지)
+    // ========================================
+    function showFatalError(message) {
+      try {
+        const app = document.getElementById('app');
+        if (app) {
+          app.innerHTML = `
+            <div style="padding:18px;font-family:system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;">
+              <div style="background:#fff;border:2px solid #c44536;border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+                <div style="font-size:18px;font-weight:800;color:#c44536;margin-bottom:8px;">❌ 화면 로딩 오류</div>
+                <div style="font-size:13px;opacity:0.8;margin-bottom:10px;">아래 메시지를 복사해 보내주시면 바로 수정 가능합니다.</div>
+                <pre style="white-space:pre-wrap;word-break:break-word;background:#fffbf3;border:1px solid #e5dcc5;border-radius:10px;padding:10px;font-size:12px;line-height:1.35;">${message}</pre>
+              </div>
+            </div>
+          `;
+        }
+      } catch (_) {}
+      alert("화면 로딩 오류:\n" + message);
+    }
+
+    window.addEventListener('error', function(e) {
+      const msg = (e && e.message) ? e.message : String(e);
+      showFatalError(msg);
+    });
+
+    window.addEventListener('unhandledrejection', function(e) {
+      const msg = (e && e.reason && e.reason.message) ? e.reason.message : String(e.reason || e);
+      showFatalError(msg);
+    });
             });
           }
         }
@@ -857,6 +888,9 @@
           case 2: renderStatsPage(container); break;
           case 3: renderHistoryPage(container); break;
           case 4: renderSettingsPage(container); break;
+          case 10: renderExistingCourseSelectionPage(container); break;
+          case 11: renderNewCourseInputPage(container); break;
+          case 12: renderTeeboxSelectionPage(container); break;
         }
       }
 
@@ -2383,32 +2417,6 @@
     // ========================================
     // PAGE ROUTING (for new course flow)
     // ========================================
-    function renderByPage(container) {
-      switch (appState.currentPage) {
-        case 10: renderExistingCourseSelectionPage(container); break;
-        case 11: renderNewCourseInputPage(container); break;
-        case 12: renderTeeboxSelectionPage(container); break;
-        default:
-          render();
-      }
-    }
-
-    // Override render for page routing
-    const originalRender = render;
-    render = function() {
-      if (appState.currentPage >= 10 && appState.currentPage <= 12 && !appState.activeRound) {
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-        const container = document.createElement('div');
-        container.className = 'page-container';
-        renderByPage(container);
-        app.appendChild(container);
-        app.appendChild(renderBottomNav());
-      } else {
-        originalRender();
-      }
-    };
-
 
     // ========================================
     // GEMINI API - SCORECARD UPLOAD
@@ -2454,56 +2462,23 @@
     }
 
     async function callGeminiForScoreCard(base64Data, mimeType) {
-      const URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
-
-      const prompt = [
-        '이 스코어카드 이미지에서 골프 코스 정보를 추출하세요.',
-        '반드시 아래 형식의 JSON만 응답하세요. 다른 텍스트, 설명, 마크다운 불가.',
-        '{',
-        '  "name": "코스 이름",',
-        '  "location": "위치",',
-        '  "holes": 홀수 (9 또는 18),',
-        '  "par": [홀별 파 배열],',
-        '  "stroke_index": [홀별 인덱스(Stroke Index/Handicap Index) 배열 (1~홀수)],',
-        '  "distances_blue": [홀별 블루티 거리(미터) 배열],',
-        '  "distances_white": [홀별 화이트티 거리(미터) 배열]',
-        '}',
-        '참고: 야드 단위면 미터로 변환(1야드=0.9144미터). Index 열 제목은 Stroke Index, Men\'s Index, Handicap, Men\'s Handicap, Men\'s HCP, HCP, HDC, Men\'s HDCP, HDCP 등으로 표기될 수 있으니 해당 열을 stroke_index로 추출. 정보 없으면 거리는 0, 파는 4, stroke_index는 1..홀수로 설정.'
-      ].join('\n');
-
-      const body = {
-        contents: [{
-          parts: [
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Data
-              }
-            },
-            { text: prompt }
-          ]
-        }]
-      };
-
-      const response = await fetch(URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+      // ✅ GitHub Pages(정적 배포)에서는 API Key를 프론트에 두면 노출됩니다.
+      // Render 프록시 서버(backend)가 Gemini를 호출하도록 구성하세요.
+      const response = await fetch(PROXY_BASE_URL + "/api/scorecard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64Data, mimeType })
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error('Gemini API 호출 실패: ' + response.status + ' ' + errText);
+        throw new Error("스코어카드 처리 실패(프록시): " + response.status + " " + errText);
       }
 
-      const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text.trim();
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('스코어카드에서 코스 정보를 찾을 수 없습니다.');
-
-      return JSON.parse(jsonMatch[0]);
+      // 프록시는 추출된 코스 JSON을 그대로 반환한다고 가정합니다.
+      return await response.json();
     }
+
 
     function fillCourseFromAI(data) {
   const holes = data.holes || 18;
