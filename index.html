@@ -668,6 +668,41 @@
     gap: 30px;
   }
 
+  
+    .hole-row.totals-row {
+      background: rgba(255,255,255,0.6);
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      padding: 6px 6px;
+      margin: 10px 0 12px;
+      font-weight: 700;
+    }
+    .hole-row.totals-row .totals-label {
+      font-size: 12px;
+      color: var(--green-primary);
+      text-align: center;
+    }
+    .hole-row.totals-row .totals-cell {
+      font-size: 12px;
+      text-align: center;
+      color: var(--brown);
+    }
+    .input-error {
+      border-color: var(--red) !important;
+      background: #fff2f0 !important;
+    }
+    .validation-msg {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(196,69,54,0.10);
+      border: 1px solid rgba(196,69,54,0.25);
+      color: var(--red);
+      font-size: 13px;
+      line-height: 1.3;
+      display: none;
+    }
+
   </style>
 </head>
 <body>
@@ -764,6 +799,32 @@
       isNewCourseRound: false, // 새 코스 라운드 플래그
       newCourseData: null // 새 코스 빌드업 데이터
     };
+    // ========================================
+    // SAFETY: Prevent blank screen on runtime errors
+    // ========================================
+    window.addEventListener('error', (e) => {
+      console.error('Runtime error:', e.error || e.message);
+      const root = document.getElementById('app');
+      if (root && !root.dataset.crashed) {
+        root.dataset.crashed = '1';
+        root.innerHTML = `
+          <div style="padding:16px;">
+            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">오류가 발생했습니다</div>
+            <div style="font-size:13px;opacity:0.9;line-height:1.4;">
+              화면이 비어 보이는 현상을 방지하기 위해 오류 화면을 표시했습니다.<br>
+              새로고침 후 다시 시도해 주세요.
+            </div>
+            <button style="margin-top:14px;padding:10px 14px;border-radius:10px;border:2px solid #2d5016;background:#fff;cursor:pointer;"
+              onclick="location.reload()">새로고침</button>
+          </div>
+        `;
+      }
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled rejection:', e.reason);
+    });
+
 
     // ========================================
     // LOCAL STORAGE
@@ -1284,6 +1345,8 @@
       const inDistWhite = course.holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
       const totalDistWhite = course.distances.white.reduce((a,b) => a+b, 0);
 
+      const validation = validateCourse(course);
+
       modal.innerHTML = `
         <div class="modal-content">
           <div class="modal-header">
@@ -1351,8 +1414,8 @@
                 <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
                 <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
               </select>
-              <input type="number" value="${course.strokeIndex && course.strokeIndex[i] ? course.strokeIndex[i] : ''}"
-                oninput="updateHoleIndexNoRender(${i}, parseInt(this.value) || 0)"
+              <input type="number" min="1" max="36" step="1" id="idx-${i}" value="${course.strokeIndex && course.strokeIndex[i] ? course.strokeIndex[i] : ''}"
+                oninput="handleStrokeIndexInput(${i}, this.value)"
                 placeholder="Idx">
               <input type="number" value="${course.distances.blue[i] || ''}" 
                 oninput="updateHoleDistanceNoRender(${i}, 'blue', parseInt(this.value) || 0)"
@@ -1362,6 +1425,14 @@
                 placeholder="White">
             </div>
           `).join('')}
+
+          <div class="hole-row totals-row" id="outTotalsRow">
+            <div class="totals-label">OUT</div>
+            <div class="totals-cell">Par ${outPar}</div>
+            <div class="totals-cell">-</div>
+            <div class="totals-cell">Blue ${outDistBlue}m</div>
+            <div class="totals-cell">White ${outDistWhite}m</div>
+          </div>
 
           ${course.holes === 18 ? `
             <div class="section-divider"></div>
@@ -1385,8 +1456,8 @@
                     <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
                     <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
                   </select>
-                  <input type=\"number\" value=\"${course.strokeIndex && course.strokeIndex[holeIdx] ? course.strokeIndex[holeIdx] : ''}\"
-                    oninput=\"updateHoleIndexNoRender(${holeIdx}, parseInt(this.value) || 0)\"
+                  <input type=\"number\" min=\"1\" max=\"36\" step=\"1\" id=\"idx-${holeIdx}\" value=\"${course.strokeIndex && course.strokeIndex[holeIdx] ? course.strokeIndex[holeIdx] : ''}\"
+                    oninput=\"handleStrokeIndexInput(${holeIdx}, this.value)\"
                     placeholder=\"Idx\">
                   <input type="number" value="${course.distances.blue[holeIdx] || ''}" 
                     oninput="updateHoleDistanceNoRender(${holeIdx}, 'blue', parseInt(this.value) || 0)"
@@ -1399,8 +1470,35 @@
             }).join('')}
           ` : ''}
 
-          <button class="primary-btn" onclick="saveCourseAndRefresh()" 
-            ${!course.name ? 'disabled' : ''}>
+          ${course.holes === 18 ? `
+          <div class="hole-row totals-row" id="inTotalsRow">
+            <div class="totals-label">IN</div>
+            <div class="totals-cell">Par ${inPar}</div>
+            <div class="totals-cell">-</div>
+            <div class="totals-cell">Blue ${inDistBlue}m</div>
+            <div class="totals-cell">White ${inDistWhite}m</div>
+          </div>
+          <div class="hole-row totals-row" id="totalTotalsRow">
+            <div class="totals-label">TOTAL</div>
+            <div class="totals-cell">Par ${totalPar}</div>
+            <div class="totals-cell">-</div>
+            <div class="totals-cell">Blue ${totalDistBlue}m</div>
+            <div class="totals-cell">White ${totalDistWhite}m</div>
+          </div>
+          ` : `
+          <div class="hole-row totals-row" id="totalTotalsRow">
+            <div class="totals-label">TOTAL</div>
+            <div class="totals-cell">Par ${totalPar}</div>
+            <div class="totals-cell">-</div>
+            <div class="totals-cell">Blue ${totalDistBlue}m</div>
+            <div class="totals-cell">White ${totalDistWhite}m</div>
+          </div>
+          `}
+
+          <div id="courseValidationMsg" class="validation-msg">${validation.message || ''}</div>
+
+          <button id="courseSaveBtn" class="primary-btn" onclick="saveCourseAndRefresh()" 
+            ${!validation.ok ? 'disabled' : ''}>
             ${appState.editingCourse ? '수정 완료' : '코스 저장'}
           </button>
         </div>
@@ -1449,20 +1547,130 @@
       appState.newCourse.strokeIndex[index] = value;
     };
 
+    function validateCourse(course) {
+      const holes = course.holes || 18;
+
+      // Ensure strokeIndex array exists
+      if (!course.strokeIndex || !Array.isArray(course.strokeIndex)) {
+        course.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
+      }
+
+      const issues = [];
+      const invalidIndexHoles = [];
+      const indexMap = new Map(); // idx -> [holeNumbers]
+      const dupIndexHoles = [];
+
+      // Name
+      if (!course.name || !course.name.trim()) {
+        issues.push('코스명을 입력하세요.');
+      }
+
+      // Per-hole checks
+      for (let i = 0; i < holes; i++) {
+        const holeNo = i + 1;
+
+        // Index: positive, <= 36, integer
+        const idxVal = parseInt(course.strokeIndex[i], 10);
+        if (!Number.isInteger(idxVal) || idxVal < 1 || idxVal > 36) {
+          invalidIndexHoles.push(holeNo);
+        } else {
+          if (!indexMap.has(idxVal)) indexMap.set(idxVal, []);
+          indexMap.get(idxVal).push(holeNo);
+        }
+
+        // Distances must be positive numbers (Blue/White)
+        const b = parseInt(course.distances?.blue?.[i] ?? 0, 10);
+        const w = parseInt(course.distances?.white?.[i] ?? 0, 10);
+        if (!Number.isFinite(b) || b <= 0) issues.push(`Blue(m) 거리 누락: ${holeNo}번 홀`);
+        if (!Number.isFinite(w) || w <= 0) issues.push(`White(m) 거리 누락: ${holeNo}번 홀`);
+      }
+
+      // Duplicates
+      for (const [idx, holesArr] of indexMap.entries()) {
+        if (holesArr.length > 1) {
+          dupIndexHoles.push(...holesArr);
+          issues.push(`Index 중복: ${idx} (홀 ${holesArr.join(', ')})`);
+        }
+      }
+
+      if (invalidIndexHoles.length) {
+        issues.push(`Index 범위 오류(1~36): 홀 ${invalidIndexHoles.join(', ')}`);
+      }
+
+      // Keep message short: show up to 3 issues
+      const msg = issues.length ? issues.slice(0, 3).join('<br>') : '';
+
+      const ok = issues.length === 0;
+
+      return { ok, message: msg, invalidIndexHoles, dupIndexHoles };
+    }
+
+    function applyIndexValidationUI(validation) {
+      // Clear previous styling
+      const course = appState.newCourse;
+      const holes = course.holes || 18;
+      for (let i = 0; i < holes; i++) {
+        const el = document.getElementById(`idx-${i}`);
+        if (el) el.classList.remove('input-error');
+      }
+
+      // Mark invalids
+      validation.invalidIndexHoles.forEach(holeNo => {
+        const el = document.getElementById(`idx-${holeNo - 1}`);
+        if (el) el.classList.add('input-error');
+      });
+
+      // Mark duplicates
+      validation.dupIndexHoles.forEach(holeNo => {
+        const el = document.getElementById(`idx-${holeNo - 1}`);
+        if (el) el.classList.add('input-error');
+      });
+
+      // Message + button
+      const msgEl = document.getElementById('courseValidationMsg');
+      if (msgEl) {
+        if (validation.message) {
+          msgEl.innerHTML = validation.message;
+          msgEl.style.display = 'block';
+        } else {
+          msgEl.innerHTML = '';
+          msgEl.style.display = 'none';
+        }
+      }
+
+      const btn = document.getElementById('courseSaveBtn');
+      if (btn) {
+        btn.disabled = !validation.ok;
+      }
+    }
+
+    window.handleStrokeIndexInput = function(index, rawValue) {
+      let v = parseInt(rawValue, 10);
+      if (!Number.isFinite(v)) v = 0;
+
+      // Hard clamp in state (keep within 0..36; 0 means "not set yet")
+      if (v < 0) v = 0;
+      if (v > 36) v = 36;
+
+      window.updateHoleIndexNoRender(index, v);
+      // Recompute derived UI and validation
+      updateParSummary();
+    };
+
     function updateParSummary() {
       const course = appState.newCourse;
       const outPar = course.par.slice(0, 9).reduce((a,b) => a+b, 0);
       const inPar = course.holes === 18 ? course.par.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
       const totalPar = course.par.reduce((a,b) => a+b, 0);
-      
+
       const outDistBlue = course.distances.blue.slice(0, 9).reduce((a,b) => a+b, 0);
       const inDistBlue = course.holes === 18 ? course.distances.blue.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
       const totalDistBlue = course.distances.blue.reduce((a,b) => a+b, 0);
-      
+
       const outDistWhite = course.distances.white.slice(0, 9).reduce((a,b) => a+b, 0);
       const inDistWhite = course.holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
       const totalDistWhite = course.distances.white.reduce((a,b) => a+b, 0);
-      
+
       const summaryElement = document.querySelector('.par-summary');
       if (summaryElement) {
         summaryElement.innerHTML = `
@@ -1482,6 +1690,41 @@
           </div>
         `;
       }
+
+      // Update the new totals rows
+      const outRow = document.getElementById('outTotalsRow');
+      if (outRow) {
+        const cells = outRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${outPar}`;
+          cells[2].textContent = `Blue ${outDistBlue}m`;
+          cells[3].textContent = `White ${outDistWhite}m`;
+        }
+      }
+
+      const inRow = document.getElementById('inTotalsRow');
+      if (inRow) {
+        const cells = inRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${inPar}`;
+          cells[2].textContent = `Blue ${inDistBlue}m`;
+          cells[3].textContent = `White ${inDistWhite}m`;
+        }
+      }
+
+      const totalRow = document.getElementById('totalTotalsRow');
+      if (totalRow) {
+        const cells = totalRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${totalPar}`;
+          cells[2].textContent = `Blue ${totalDistBlue}m`;
+          cells[3].textContent = `White ${totalDistWhite}m`;
+        }
+      }
+
+      // Validation/UI
+      const validation = validateCourse(course);
+      applyIndexValidationUI(validation);
     }
 
     window.saveCourseAndRefresh = function() {
