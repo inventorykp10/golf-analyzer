@@ -2482,25 +2482,6 @@
         }]
       };
 
-      const response = await fetch(URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error('Gemini API 호출 실패: ' + response.status + ' ' + errText);
-      }
-
-      const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text.trim();
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('스코어카드에서 코스 정보를 찾을 수 없습니다.');
-
-      return JSON.parse(jsonMatch[0]);
-    }
 
     function fillCourseFromAI(data) {
   const holes = data.holes || 18;
