@@ -2413,7 +2413,8 @@
     // ========================================
     // GEMINI API - SCORECARD UPLOAD
     // ========================================
-    const GEMINI_API_KEY = 'AIzaSyDq99TUnFbwa_hWewjE4HqCzzWgsR_nNoY';
+    const PROXY_BASE_URL = "https://golf-analyzer-xtxv.onrender.com";
+
 
     window.uploadCamera = function() {
       document.getElementById('scorecard-camera').click();
@@ -2428,12 +2429,7 @@
       if (!file) return;
       event.target.value = '';
 
-      if (!GEMINI_API_KEY) {
-        alert('❗ API 키가 설정되지 않았습니다.');
-        return;
-      }
-
-      document.getElementById('upload-loading').classList.add('active');
+            document.getElementById('upload-loading').classList.add('active');
 
       try {
         const base64Data = await fileToBase64(file);
@@ -2458,23 +2454,20 @@
     }
 
     async function callGeminiForScoreCard(base64Data, mimeType) {
-      const URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
+      const response = await fetch(PROXY_BASE_URL + "/api/scorecard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64Data, mimeType })
+      });
 
-      const prompt = [
-        '이 스코어카드 이미지에서 골프 코스 정보를 추출하세요.',
-        '반드시 아래 형식의 JSON만 응답하세요. 다른 텍스트, 설명, 마크다운 불가.',
-        '{',
-        '  "name": "코스 이름",',
-        '  "location": "위치",',
-        '  "holes": 홀수 (9 또는 18),',
-        '  "par": [홀별 파 배열],',
-        '  "stroke_index": [홀별 인덱스(Stroke Index/Handicap Index) 배열 (1~홀수)],',
-        '  "distances_blue": [홀별 블루티 거리(미터) 배열],',
-        '  "distances_white": [홀별 화이트티 거리(미터) 배열]',
-        '}',
-        '참고: 야드 단위면 미터로 변환(1야드=0.9144미터). Index 열 제목은 Stroke Index, Men\'s Index, Handicap, Men\'s Handicap, Men\'s HCP, HCP, HDC, Men\'s HDCP, HDCP 등으로 표기될 수 있으니 해당 열을 stroke_index로 추출. 정보 없으면 거리는 0, 파는 4, stroke_index는 1..홀수로 설정.'
-      ].join('\n');
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error("프록시 호출 실패: " + response.status + " " + errText);
+      }
 
+      return await response.json();
+    }
+    
       const body = {
         contents: [{
           parts: [
