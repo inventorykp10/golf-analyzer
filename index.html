@@ -790,37 +790,6 @@
                 const holes = c.holes || (c.par ? c.par.length : 18) || 18;
                 c.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
               }
-
-    // ========================================
-    // GLOBAL ERROR GUARD (빈 화면 방지)
-    // ========================================
-    function showFatalError(message) {
-      try {
-        const app = document.getElementById('app');
-        if (app) {
-          app.innerHTML = `
-            <div style="padding:18px;font-family:system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;">
-              <div style="background:#fff;border:2px solid #c44536;border-radius:12px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                <div style="font-size:18px;font-weight:800;color:#c44536;margin-bottom:8px;">❌ 화면 로딩 오류</div>
-                <div style="font-size:13px;opacity:0.8;margin-bottom:10px;">아래 메시지를 복사해 보내주시면 바로 수정 가능합니다.</div>
-                <pre style="white-space:pre-wrap;word-break:break-word;background:#fffbf3;border:1px solid #e5dcc5;border-radius:10px;padding:10px;font-size:12px;line-height:1.35;">${message}</pre>
-              </div>
-            </div>
-          `;
-        }
-      } catch (_) {}
-      alert("화면 로딩 오류:\n" + message);
-    }
-
-    window.addEventListener('error', function(e) {
-      const msg = (e && e.message) ? e.message : String(e);
-      showFatalError(msg);
-    });
-
-    window.addEventListener('unhandledrejection', function(e) {
-      const msg = (e && e.reason && e.reason.message) ? e.reason.message : String(e.reason || e);
-      showFatalError(msg);
-    });
             });
           }
         }
@@ -888,9 +857,6 @@
           case 2: renderStatsPage(container); break;
           case 3: renderHistoryPage(container); break;
           case 4: renderSettingsPage(container); break;
-          case 10: renderExistingCourseSelectionPage(container); break;
-          case 11: renderNewCourseInputPage(container); break;
-          case 12: renderTeeboxSelectionPage(container); break;
         }
       }
 
@@ -2417,12 +2383,36 @@
     // ========================================
     // PAGE ROUTING (for new course flow)
     // ========================================
+    function renderByPage(container) {
+      switch (appState.currentPage) {
+        case 10: renderExistingCourseSelectionPage(container); break;
+        case 11: renderNewCourseInputPage(container); break;
+        case 12: renderTeeboxSelectionPage(container); break;
+        default:
+          render();
+      }
+    }
+
+    // Override render for page routing
+    const originalRender = render;
+    render = function() {
+      if (appState.currentPage >= 10 && appState.currentPage <= 12 && !appState.activeRound) {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'page-container';
+        renderByPage(container);
+        app.appendChild(container);
+        app.appendChild(renderBottomNav());
+      } else {
+        originalRender();
+      }
+    };
+
 
     // ========================================
     // GEMINI API - SCORECARD UPLOAD
     // ========================================
-    const PROXY_BASE_URL = "https://golf-analyzer-xtxv.onrender.com";
-
 
     window.uploadCamera = function() {
       document.getElementById('scorecard-camera').click();
@@ -2437,22 +2427,20 @@
       if (!file) return;
       event.target.value = '';
 
-            document.getElementById('upload-loading').classList.add('active');
+      document.getElementById('upload-loading').classList.add('active');
 
       try {
-        const base64Data = await fileToBase64(file);
-        const mimeType = file.type;
-        const extractedData = await callGeminiForScoreCard(base64Data, mimeType);
+        const extractedData = await callScorecardProxy(file);
         fillCourseFromAI(extractedData);
       } catch (error) {
         console.error('Scorecard error:', error);
-        alert('❌ 스코어카드 처리 실패:\n' + error.message);
+        alert('❌ 스코어카드 처리 실패:\n' + (error && error.message ? error.message : String(error)));
       } finally {
         document.getElementById('upload-loading').classList.remove('active');
       }
     };
 
-    function fileToBase64(file) {
+        function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(',')[1]);
@@ -2461,25 +2449,51 @@
       });
     }
 
-    async function callGeminiForScoreCard(base64Data, mimeType) {
-      // ✅ GitHub Pages(정적 배포)에서는 API Key를 프론트에 두면 노출됩니다.
-      // Render 프록시 서버(backend)가 Gemini를 호출하도록 구성하세요.
-      const response = await fetch(PROXY_BASE_URL + "/api/scorecard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64Data, mimeType })
+    function getProxyBaseUrl() {
+      // ✅ GitHub Pages에서는 프론트와 Node 서버가 보통 다른 도메인입니다.
+      // 처음 실행 시 한 번만 서버 주소를 입력하면 localStorage에 저장됩니다.
+      let base = localStorage.getItem('golfAnalyzerProxyBaseUrl') || '';
+      base = (base || '').trim();
+      if (!base) {
+        const input = prompt(
+          '스코어카드 분석 서버 주소를 입력하세요.\n예: https://your-node-server.com\n(취소하면 업로드는 실패합니다)',
+          ''
+        );
+        if (input && input.trim()) {
+          base = input.trim();
+          // 끝의 슬래시 제거
+          base = base.replace(/\/+$/, '');
+          localStorage.setItem('golfAnalyzerProxyBaseUrl', base);
+        }
+      } else {
+        base = base.replace(/\/+$/, '');
+      }
+      return base;
+    }
+
+    async function callScorecardProxy(file) {
+      const base = getProxyBaseUrl();
+      const url = (base ? base : '') + '/api/scorecard';
+
+      const formData = new FormData();
+      // 서버에서 upload.single('image') 형태로 받는 것을 기준으로 합니다.
+      formData.append('image', file, file.name || 'scorecard.jpg');
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error("스코어카드 처리 실패(프록시): " + response.status + " " + errText);
+        throw new Error('프록시 서버 호출 실패: ' + response.status + ' ' + errText);
       }
 
-      // 프록시는 추출된 코스 JSON을 그대로 반환한다고 가정합니다.
-      return await response.json();
+      const data = await response.json();
+      return data;
     }
 
-
+    
     function fillCourseFromAI(data) {
   const holes = data.holes || 18;
   let par = data.par || [];
