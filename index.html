@@ -2295,6 +2295,25 @@
     }
 
     // ========================================
+    // SCORECARD PROXY (server address helpers)
+    // ========================================
+    function _normalizeUrl(url) {
+      return (url || '').trim().replace(/\/+$/, '');
+    }
+
+    function getScorecardServerDisplay() {
+      return FIXED_SCORECARD_PROXY + ' (고정)';
+    }
+
+    window.viewScorecardServer = function() {
+      alert('현재 스코어카드 서버 주소:
+' + getScorecardServerDisplay());
+    };
+
+    
+
+
+    // ========================================
     // SETTINGS PAGE
     // ========================================
     function renderSettingsPage(container) {
@@ -2302,7 +2321,24 @@
       container.innerHTML = `
         <h1 class="page-title">⚙️ 설정</h1>
         
+        
         <div class="section">
+          <h2 class="section-title">스코어카드 분석 서버</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8;">
+            현재 서버: <b>${getScorecardServerDisplay()}</b>
+          </p>
+
+          <div class="button-group">
+            <button class="secondary-btn" onclick="viewScorecardServer()">서버 주소 보기</button>
+          </div>
+
+          <p style="opacity: 0.55; font-size: 12px; margin-top: 10px; line-height: 1.4;">
+            • 이 서버는 Render에 배포된 공식 프록시이며 변경할 수 없습니다.<br>
+            • GitHub Pages 전용으로 최적화되어 있습니다.
+          </p>
+        </div>
+
+<div class="section">
           <h2 class="section-title">등록된 코스 관리</h2>
           <p style="margin-bottom: 16px; opacity: 0.8;">
             총 ${appState.data.courses.length}개 코스 등록됨
@@ -2417,32 +2453,20 @@
     // ✅ Node.js 서버(프록시)에서만 GEMINI_API_KEY를 사용합니다.
 
     const SCORECARD_PROXY_STORAGE_KEY = 'golf_analyzer_scorecard_proxy_base_url';
+    const FIXED_SCORECARD_PROXY = 'https://golf-analyzer-xtxv.onrender.com';
 
     function normalizeBaseUrl(url) {
       return (url || '').trim().replace(/\/+$/, '');
     }
 
     function getScorecardProxyBaseUrl() {
-      const saved = normalizeBaseUrl(localStorage.getItem(SCORECARD_PROXY_STORAGE_KEY));
-      if (saved) return saved;
-
-      const input = prompt(
-        '스코어카드 분석 서버 주소를 입력하세요.\n\n' +
-        '예: https://your-node-server.com\n\n' +
-        '(취소하면 업로드는 실패합니다)'
-      );
-
-      const normalized = normalizeBaseUrl(input);
-      if (!normalized) return '';
-      localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, normalized);
-      return normalized;
+      // 🔒 고정된 공식 서버 사용 (변경 불가)
+      localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, FIXED_SCORECARD_PROXY);
+      return FIXED_SCORECARD_PROXY;
     }
 
     // 필요 시 주소를 다시 입력하도록 초기화
-    window.resetScorecardServer = function() {
-      localStorage.removeItem(SCORECARD_PROXY_STORAGE_KEY);
-      alert('스코어카드 서버 주소가 초기화되었습니다. 다음 업로드 때 다시 입력됩니다.');
-    };
+    
 
     window.uploadCamera = function() {
       document.getElementById('scorecard-camera').click();
@@ -2490,7 +2514,9 @@
     }
 
     async function callScorecardProxy(proxyBaseUrl, base64Data, mimeType) {
-      const response = await fetch(proxyBaseUrl + '/api/scorecard', {
+      const url = proxyBaseUrl + '/api/scorecard';
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64Data, mimeType })
@@ -2498,6 +2524,24 @@
 
       if (!response.ok) {
         const errText = await response.text();
+
+        // 404/405는 보통 "서버 주소/엔드포인트가 다름" 또는 "GET/POST 불일치" 케이스가 많음
+        if (response.status === 404 || response.status === 405) {
+          throw new Error(
+            '프록시 호출 실패: ' + response.status + '
+' +
+            '요청 URL: ' + url + '
+
+' +
+            '서버 주소가 잘못되었거나, 서버가 /api/scorecard POST를 지원하지 않습니다.
+' +
+            '설정(⚙️) → 스코어카드 분석 서버에서 주소를 확인/변경 후 다시 시도하세요.
+
+' +
+            (errText ? ('서버 응답: ' + errText) : '')
+          );
+        }
+
         throw new Error('프록시 호출 실패: ' + response.status + ' ' + errText);
       }
 
