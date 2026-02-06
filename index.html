@@ -2354,7 +2354,7 @@
 
         <div class="section" style="text-align: center;">
           <h3 style="margin-bottom: 8px;">Golf Round Analyzer</h3>
-          <p style="opacity: 0.6;">Version 9.1.0</p>
+          <p style="opacity: 0.6;">Version 9.2.0</p>
           <p style="opacity: 0.6;">테스트2 피드백 반영</p>
           <p style="opacity: 0.6; font-size: 12px; margin-top: 8px;">
             Par 입력 로직 개선 • 샷 필드 초기화 수정
@@ -2510,33 +2510,72 @@
     }
 
     function fillCourseFromAI(data) {
-      const holes = data.holes || 18;
-      let par = data.par || [];
-      let distBlue = data.distances_blue || [];
-      let distWhite = data.distances_white || [];
-      let strokeIdx = data.stroke_index || data.strokeIndex || data.index || data.hcp || data.hdc || data.hdcp || data.handicap || data.mens_index || data.mens_hdcp || data.mens_handicap || [];
+  const holes = data.holes || 18;
+  let par = data.par || [];
+  let distBlue = data.distances_blue || [];
+  let distWhite = data.distances_white || [];
 
-      while (par.length < holes) par.push(4);
-      while (distBlue.length < holes) distBlue.push(0);
-      while (distWhite.length < holes) distWhite.push(0);
-      if (!Array.isArray(strokeIdx)) strokeIdx = [];
-      while (strokeIdx.length < holes) strokeIdx.push(strokeIdx.length + 1);
+  // ✅ Stroke Index(또는 Handicap 열) 후보 키들
+  const rawIdx =
+    data.stroke_index ??
+    data.strokeIndex ??
+    data.stroke_index_mens ??
+    data.index ??
+    data.mens_index ??
+    data.mensIndex ??
+    data.mens_hcp ??
+    data.mensHcp ??
+    data.mens_hdcp ??
+    data.mensHdcp ??
+    data.handicap ??
+    data.hcp ??
+    data.hdc ??
+    data.hdcp ??
+    data.mens_handicap ??
+    data.mensHandicap ??
+    [];
 
-      appState.newCourse = {
-        id: 'course_' + Date.now(),
-        name: data.name || '',
-        location: data.location || '',
-        holes: holes,
-        par: par.slice(0, holes),
-        strokeIndex: strokeIdx.slice(0, holes),
-        distances: {
-          blue: distBlue.slice(0, holes),
-          white: distWhite.slice(0, holes)
-        }
-      };
-      appState.showCourseModal = true;
-      render();
+  // ✅ 다양한 형태(배열/문자열/객체 out+in)를 1개의 배열로 정규화
+  let strokeIdx = [];
+  if (Array.isArray(rawIdx)) {
+    strokeIdx = rawIdx;
+  } else if (rawIdx && typeof rawIdx === 'object') {
+    // 예: { out:[...], in:[...] } 또는 { front9:[...], back9:[...] }
+    const outArr = rawIdx.out || rawIdx.front9 || rawIdx.front_9 || rawIdx.out9 || rawIdx.out_9 || [];
+    const inArr = rawIdx.in || rawIdx.back9 || rawIdx.back_9 || rawIdx.in9 || rawIdx.in_9 || [];
+    if (Array.isArray(outArr) || Array.isArray(inArr)) {
+      strokeIdx = []
+        .concat(Array.isArray(outArr) ? outArr : [])
+        .concat(Array.isArray(inArr) ? inArr : []);
     }
+  } else if (typeof rawIdx === 'string') {
+    // 예: "5,11,7,15,1,..." 또는 "5 11 7 ..."
+    const nums = rawIdx.match(/\d+/g);
+    strokeIdx = nums ? nums.map(n => parseInt(n, 10)) : [];
+  }
+
+  // 길이 보정(기본값 적용)
+  while (par.length < holes) par.push(4);
+  while (distBlue.length < holes) distBlue.push(0);
+  while (distWhite.length < holes) distWhite.push(0);
+  if (!Array.isArray(strokeIdx)) strokeIdx = [];
+  while (strokeIdx.length < holes) strokeIdx.push(strokeIdx.length + 1);
+
+  appState.newCourse = {
+    id: 'course_' + Date.now(),
+    name: data.name || '',
+    location: data.location || '',
+    holes: holes,
+    par: par.slice(0, holes),
+    strokeIndex: strokeIdx.slice(0, holes),
+    distances: {
+      blue: distBlue.slice(0, holes),
+      white: distWhite.slice(0, holes)
+    }
+  };
+  appState.showCourseModal = true;
+  render();
+}
 
     // ========================================
     // INIT
