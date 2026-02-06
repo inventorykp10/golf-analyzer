@@ -788,6 +788,30 @@
     }
 
     // ========================================
+    // DATA MIGRATION (구버전 호환)
+    // ========================================
+    function ensureCourseIndexData() {
+      if (!appState.data || !Array.isArray(appState.data.courses)) return;
+
+      appState.data.courses.forEach(course => {
+        const holes = course.holes || 18;
+
+        if (!Array.isArray(course.index)) {
+          course.index = Array.from({ length: holes }, (_, i) => i + 1);
+        }
+
+        // 홀 수 변경/구버전 데이터로 길이가 안 맞는 경우 보정
+        if (course.index.length < holes) {
+          const start = course.index.length;
+          for (let i = start; i < holes; i++) course.index.push(i + 1);
+        }
+        if (course.index.length > holes) {
+          course.index = course.index.slice(0, holes);
+        }
+      });
+    }
+
+    // ========================================
     // AI CLUB RECOMMENDATION
     // ========================================
     function getRecommendedClub(distance) {
@@ -1194,6 +1218,7 @@
         name: courseName,
         location: '', // 나중에 추가 가능
         holes: 18,
+        index: [],
         par: [],
         distances: {
           blue: [],
@@ -2480,10 +2505,14 @@
     function fillCourseFromAI(data) {
       const holes = data.holes || 18;
       let par = data.par || [];
+      let idx = data.index || data.stroke_index || data.strokeIndex || [];
       let distBlue = data.distances_blue || [];
       let distWhite = data.distances_white || [];
 
+      if (!Array.isArray(idx)) idx = [];
+
       while (par.length < holes) par.push(4);
+      while (idx.length < holes) idx.push(0);
       while (distBlue.length < holes) distBlue.push(0);
       while (distWhite.length < holes) distWhite.push(0);
 
@@ -2492,6 +2521,7 @@
         name: data.name || '',
         location: data.location || '',
         holes: holes,
+        index: idx.slice(0, holes),
         par: par.slice(0, holes),
         distances: {
           blue: distBlue.slice(0, holes),
@@ -2506,6 +2536,7 @@
     // INIT
     // ========================================
     loadData();
+    ensureCourseIndexData();
     render();
   </script>
 </body>
