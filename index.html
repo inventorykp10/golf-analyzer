@@ -914,6 +914,7 @@
 
   <input type="file" id="scorecard-upload" accept="image/*" style="display:none" onchange="handleScoreCardUpload(event)">
   <input type="file" id="scorecard-camera" accept="image/*" capture="environment" style="display:none" onchange="handleScoreCardUpload(event)">
+  <input type="file" id="backup-restore-input" accept="application/json" style="display:none" onchange="handleBackupRestore(event)">
   <div id="upload-loading" class="upload-loading-overlay">
     <div class="upload-spinner"></div>
     <div class="upload-loading-text">
@@ -1039,6 +1040,110 @@
                 const holes = c.holes || (c.par ? c.par.length : 18) || 18;
                 c.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
               }
+
+    // ========================================
+    // BACKUP / RESTORE (export/import JSON)
+    // ========================================
+    function _ensureCourseStrokeIndex(data) {
+      try {
+        if (data && Array.isArray(data.courses)) {
+          data.courses.forEach(c => {
+            if (!c.strokeIndex || !Array.isArray(c.strokeIndex)) {
+              const holes = c.holes || (c.par ? c.par.length : 18) || 18;
+              c.strokeIndex = Array.from({ length: holes }, (_, i) => i + 1);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('StrokeIndex 보정 실패:', e);
+      }
+    }
+
+    window.downloadBackup = function() {
+      try {
+        // 저장 최신화
+        saveData();
+
+        const payload = {
+          meta: {
+            app: 'Golf Round Analyzer',
+            version: 'v9',
+            exportedAt: new Date().toISOString()
+          },
+          data: appState.data
+        };
+
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'YS_golf_backup.json';
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 0);
+      } catch (e) {
+        console.error('백업 실패:', e);
+        alert('백업 파일 생성에 실패했습니다.');
+      }
+    };
+
+    window.triggerBackupRestore = function() {
+      const input = document.getElementById('backup-restore-input');
+      if (!input) {
+        alert('복원 입력 요소를 찾을 수 없습니다.');
+        return;
+      }
+      input.value = ''; // 동일 파일 재선택 가능
+      input.click();
+    };
+
+    window.handleBackupRestore = function(event) {
+      try {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const text = e.target.result;
+            const parsed = JSON.parse(text);
+
+            // payload 형태: { meta, data } 또는 data 자체
+            const incoming = parsed && parsed.data ? parsed.data : parsed;
+
+            if (!incoming || !Array.isArray(incoming.rounds) || !Array.isArray(incoming.courses)) {
+              alert('백업 파일 형식이 올바르지 않습니다.\n(rounds/courses 데이터가 필요합니다)');
+              return;
+            }
+
+            if (!confirm('백업 파일로 복원하시겠습니까?\n현재 데이터는 백업 내용으로 교체됩니다.')) {
+              return;
+            }
+
+            // 적용 + 호환성 보정
+            _ensureCourseStrokeIndex(incoming);
+            appState.data = incoming;
+
+            saveData();
+            alert('복원이 완료되었습니다.');
+            render();
+          } catch (err) {
+            console.error('복원 파싱 실패:', err);
+            alert('백업 파일을 읽는 중 오류가 발생했습니다.\n파일이 손상되었거나 형식이 다를 수 있습니다.');
+          }
+        };
+        reader.readAsText(file, 'utf-8');
+      } catch (e) {
+        console.error('복원 처리 실패:', e);
+        alert('복원 처리 중 오류가 발생했습니다.');
+      }
+    };
+
             });
           }
         }
@@ -2669,6 +2774,27 @@ const holeIndex = appState.currentHole - 1;
       container.classList.add('scrollable');
       container.innerHTML = `
         <h1 class="page-title">⚙️ 설정</h1>
+
+
+        <div class="section">
+          <h2 class="section-title">백업 / 복원</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8; line-height: 1.4;">
+            • 현재 기기/브라우저에 데이터가 자동 저장됩니다.<br>
+            • 휴대폰 교체/브라우저 초기화 대비를 위해 백업 파일을 보관하세요.
+          </p>
+
+          <div class="button-group">
+            <button class="secondary-btn" onclick="downloadBackup()">📥 백업 파일 다운로드</button>
+            <button class="secondary-btn" onclick="triggerBackupRestore()">📤 백업 파일로 복원</button>
+          </div>
+
+          <p style="opacity: 0.55; font-size: 12px; margin-top: 10px; line-height: 1.4;">
+            • 백업 파일 이름: <b>YS_golf_backup.json</b><br>
+            • 복원하면 현재 데이터가 백업 파일 내용으로 교체됩니다.
+          </p>
+        </div>
+
+
         
         
         <div class="section">
