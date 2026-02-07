@@ -1003,33 +1003,18 @@
       editingCourse: null,
     };
     // ========================================
-    // SAFETY: Prevent blank screen on runtime errors
+    // SAFETY: log errors only (no crash screen)
     // ========================================
     window.addEventListener('error', (e) => {
       console.error('Runtime error:', e.error || e.message);
-      const root = document.getElementById('app');
-      if (root && !root.dataset.crashed) {
-        root.dataset.crashed = '1';
-        root.innerHTML = `
-          <div style="padding:16px;">
-            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">오류가 발생했습니다</div>
-            <div style="font-size:13px;opacity:0.9;line-height:1.4;">
-              화면이 비어 보이는 현상을 방지하기 위해 오류 화면을 표시했습니다.<br>
-              새로고침 후 다시 시도해 주세요.
-            </div>
-            <button style="margin-top:14px;padding:10px 14px;border-radius:10px;border:2px solid #2d5016;background:#fff;cursor:pointer;"
-              onclick="location.reload()">새로고침</button>
-          </div>
-        `;
-      }
+      // 화면을 덮어쓰지 않음 (진행 가능)
     });
 
     window.addEventListener('unhandledrejection', (e) => {
       console.error('Unhandled rejection:', e.reason);
+      // 화면을 덮어쓰지 않음 (진행 가능)
     });
-
-
-    // ========================================
+// ========================================
     // LOCAL STORAGE
     // ========================================
     function saveData() {
@@ -1120,7 +1105,9 @@
           case 1: renderRoundStartPage(container); break;
           case 2: renderStatsPage(container); break;
           case 3: renderHistoryPage(container); break;
-          case 4: renderSettingsPage(container); break;
+                    case 11: renderExistingCourseSelectionPage(container); break;
+          case 12: renderTeeboxSelectionPage(container); break;
+case 4: renderSettingsPage(container); break;
         }
       }
 
@@ -1334,6 +1321,15 @@ window.goToPage = function(page) {
         </div>
       `;
     }
+
+    // ========================================
+    // NAV: Existing course selection (missing handler fix)
+    // ========================================
+    window.goToExistingCourseSelection = function() {
+      appState.pageHistory.push(appState.currentPage);
+      appState.currentPage = 11; // existing course selection page
+      render();
+    };
 
 
 
@@ -1886,6 +1882,10 @@ window.goToPage = function(page) {
     function renderParInput(container) {
 const holeIndex = appState.currentHole - 1;
       
+      
+      // ✅ New/temporary course 여부(정의되지 않아 크래시 나는 현상 방지)
+      const isNewCourse = !!(appState.activeRound && appState.activeRound.courseId === 'new_course');
+
       let defaultPar = 4;
       let defaultDistance = '';
       
@@ -1936,11 +1936,11 @@ const holeIndex = appState.currentHole - 1;
             <label>Par</label>
             <div class="button-group-3">
               <button class="choice-btn ${appState.holePar === 3 || (!appState.holePar && defaultPar === 3) ? 'selected' : ''}" 
-                onclick="setTempPar(3)">Par 3</button>
+                onclick="setTempPar(3, event)">Par 3</button>
               <button class="choice-btn ${appState.holePar === 4 || (!appState.holePar && defaultPar === 4) ? 'selected' : ''}" 
-                onclick="setTempPar(4)">Par 4</button>
+                onclick="setTempPar(4, event)">Par 4</button>
               <button class="choice-btn ${appState.holePar === 5 || (!appState.holePar && defaultPar === 5) ? 'selected' : ''}" 
-                onclick="setTempPar(5)">Par 5</button>
+                onclick="setTempPar(5, event)">Par 5</button>
             </div>
           </div>
 
@@ -1961,13 +1961,11 @@ const holeIndex = appState.currentHole - 1;
       if (!appState.holeDistance) appState.holeDistance = defaultDistance;
     }
 
-    window.setTempPar = function(par) {
+    window.setTempPar = function(par, ev) {
       appState.holePar = par;
-      // render() 대신 버튼 스타일만 업데이트
-      document.querySelectorAll('.choice-btn').forEach(btn => {
-        btn.classList.remove('selected');
-      });
-      event.target.classList.add('selected');
+      // 현재 Par 버튼 표시 업데이트
+      document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+      if (ev && ev.target) ev.target.classList.add('selected');
     };
 
     window.confirmParAndDistance = function() {
