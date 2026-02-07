@@ -687,7 +687,13 @@
       text-align: center;
       color: var(--brown);
     }
-    .input-error {
+    
+    /* totals-row variants to match desired layout */
+    .hole-row.totals-row.total {
+      background: var(--sand);
+      border-color: rgba(92,74,58,0.25);
+    }
+.input-error {
       border-color: var(--red) !important;
       background: #fff2f0 !important;
     }
@@ -1328,188 +1334,182 @@
     };
 
     function renderCourseModal() {
-      const modal = document.createElement('div');
-      modal.className = 'modal active';
-      
-      const course = appState.newCourse;
-      
-      const outPar = course.par.slice(0, 9).reduce((a,b) => a+b, 0);
-      const inPar = course.holes === 18 ? course.par.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
-      const totalPar = course.par.reduce((a,b) => a+b, 0);
-      
-      const outDistBlue = course.distances.blue.slice(0, 9).reduce((a,b) => a+b, 0);
-      const inDistBlue = course.holes === 18 ? course.distances.blue.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
-      const totalDistBlue = course.distances.blue.reduce((a,b) => a+b, 0);
-      
-      const outDistWhite = course.distances.white.slice(0, 9).reduce((a,b) => a+b, 0);
-      const inDistWhite = course.holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
-      const totalDistWhite = course.distances.white.reduce((a,b) => a+b, 0);
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
 
-      const validation = validateCourse(course);
+  const course = appState.newCourse;
+  const holes = course.holes || 18;
 
-      modal.innerHTML = `
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title">${appState.editingCourse ? '코스 수정' : '새 코스 등록'}</h2>
-            <button class="close-btn" onclick="closeCourseModal()">&times;</button>
-          </div>
+  const outPar = course.par.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inPar = holes === 18 ? course.par.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalPar = course.par.slice(0, holes).reduce((a,b) => a+b, 0);
 
-          <div class="input-section">
-            <label>코스명</label>
-            <input type="text" class="text-input" 
-              value="${course.name}" 
-              oninput="updateNewCourseNoRender('name', this.value)"
-              placeholder="예: 스카이72 오션">
-          </div>
+  const outDistBlue = course.distances.blue.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inDistBlue = holes === 18 ? course.distances.blue.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalDistBlue = course.distances.blue.slice(0, holes).reduce((a,b) => a+b, 0);
 
-          <div class="input-section">
-            <label>위치</label>
-            <input type="text" class="text-input" 
-              value="${course.location}" 
-              oninput="updateNewCourseNoRender('location', this.value)"
-              placeholder="예: 인천">
-          </div>
+  const outDistWhite = course.distances.white.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inDistWhite = holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalDistWhite = course.distances.white.slice(0, holes).reduce((a,b) => a+b, 0);
 
-          <div class="input-section">
-            <label>홀 수</label>
-            <select class="select-input" value="${course.holes}" 
-              onchange="updateNewCourse('holes', parseInt(this.value))">
-              <option value="9" ${course.holes === 9 ? 'selected' : ''}>9홀</option>
-              <option value="18" ${course.holes === 18 ? 'selected' : ''}>18홀</option>
-            </select>
-          </div>
+  const validation = validateCourse(course);
 
-          <div class="par-summary">
-            <div class="par-summary-row">
-              <span class="par-summary-label">Out (1-9홀):</span>
-              <span class="par-summary-value">Par ${outPar} / Blue ${outDistBlue}m / White ${outDistWhite}m</span>
-            </div>
-            ${course.holes === 18 ? `
-              <div class="par-summary-row">
-                <span class="par-summary-label">In (10-18홀):</span>
-                <span class="par-summary-value">Par ${inPar} / Blue ${inDistBlue}m / White ${inDistWhite}m</span>
-              </div>
-            ` : ''}
-            <div class="par-summary-row total">
-              <span class="par-summary-label">Total:</span>
-              <span class="par-summary-value">Par ${totalPar} / Blue ${totalDistBlue}m / White ${totalDistWhite}m</span>
-            </div>
-          </div>
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">${appState.editingCourse ? '코스 수정' : '새 코스 등록'}</h2>
+        <button class="close-btn" onclick="closeCourseModal()">&times;</button>
+      </div>
 
-          <div class="subsection-title">Out (1-9홀)</div>
-          
-          <div class="holes-header">
-            <div>홀</div>
-            <div>Par</div>
-            <div>Index</div>
-            <div>Blue(m)</div>
-            <div>White(m)</div>
-          </div>
+      <div class="input-section">
+        <label>코스명</label>
+        <input type="text" class="text-input"
+          value="${course.name}"
+          oninput="updateNewCourseNoRender('name', this.value)"
+          placeholder="예: 스카이72 오션">
+      </div>
 
-          ${course.par.slice(0, 9).map((par, i) => `
+      <div class="input-section">
+        <label>위치</label>
+        <input type="text" class="text-input"
+          value="${course.location}"
+          oninput="updateNewCourseNoRender('location', this.value)"
+          placeholder="예: 인천">
+      </div>
+
+      <div class="input-section">
+        <label>홀 수</label>
+        <select class="select-input" value="${holes}"
+          onchange="updateNewCourse('holes', parseInt(this.value))">
+          <option value="9" ${holes === 9 ? 'selected' : ''}>9홀</option>
+          <option value="18" ${holes === 18 ? 'selected' : ''}>18홀</option>
+        </select>
+      </div>
+
+      <div class="subsection-title">Out (1-9홀)</div>
+
+      <div class="holes-header">
+        <div>홀</div>
+        <div>Par</div>
+        <div>Index</div>
+        <div>Blue(m)</div>
+        <div>White(m)</div>
+      </div>
+
+      ${course.par.slice(0, Math.min(9, holes)).map((par, i) => `
+        <div class="hole-row">
+          <div class="hole-number">${i+1}</div>
+          <select onchange="updateHoleParNoRender(${i}, parseInt(this.value))">
+            <option value="3" ${par === 3 ? 'selected' : ''}>3</option>
+            <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
+            <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
+          </select>
+          <input type="number" min="1" max="36" step="1" id="idx-${i}"
+            value="${course.strokeIndex && course.strokeIndex[i] ? course.strokeIndex[i] : ''}"
+            oninput="handleStrokeIndexInput(${i}, this.value)"
+            placeholder="Idx">
+          <input type="number" value="${course.distances.blue[i] || ''}"
+            oninput="updateHoleDistanceNoRender(${i}, 'blue', parseInt(this.value) || 0)"
+            placeholder="Blue">
+          <input type="number" value="${course.distances.white[i] || ''}"
+            oninput="updateHoleDistanceNoRender(${i}, 'white', parseInt(this.value) || 0)"
+            placeholder="White">
+        </div>
+      `).join('')}
+
+      <div class="hole-row totals-row" id="outTotalsRow">
+        <div class="totals-label">OUT</div>
+        <div class="totals-cell">Par ${outPar}</div>
+        <div class="totals-cell">-</div>
+        <div class="totals-cell">Blue ${outDistBlue}m</div>
+        <div class="totals-cell">White ${outDistWhite}m</div>
+      </div>
+
+      ${holes === 18 ? `
+        <div class="section-divider"></div>
+        <div class="subsection-title">In (10-18홀)</div>
+
+        <div class="holes-header">
+          <div>홀</div>
+          <div>Par</div>
+          <div>Index</div>
+          <div>Blue(m)</div>
+          <div>White(m)</div>
+        </div>
+
+        ${course.par.slice(9, 18).map((par, i) => {
+          const holeIdx = i + 9;
+          return `
             <div class="hole-row">
-              <div class="hole-number">${i+1}</div>
-              <select onchange="updateHoleParNoRender(${i}, parseInt(this.value))">
+              <div class="hole-number">${holeIdx + 1}</div>
+              <select onchange="updateHoleParNoRender(${holeIdx}, parseInt(this.value))">
                 <option value="3" ${par === 3 ? 'selected' : ''}>3</option>
                 <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
                 <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
               </select>
-              <input type="number" min="1" max="36" step="1" id="idx-${i}" value="${course.strokeIndex && course.strokeIndex[i] ? course.strokeIndex[i] : ''}"
-                oninput="handleStrokeIndexInput(${i}, this.value)"
+              <input type="number" min="1" max="36" step="1" id="idx-${holeIdx}"
+                value="${course.strokeIndex && course.strokeIndex[holeIdx] ? course.strokeIndex[holeIdx] : ''}"
+                oninput="handleStrokeIndexInput(${holeIdx}, this.value)"
                 placeholder="Idx">
-              <input type="number" value="${course.distances.blue[i] || ''}" 
-                oninput="updateHoleDistanceNoRender(${i}, 'blue', parseInt(this.value) || 0)"
+              <input type="number" value="${course.distances.blue[holeIdx] || ''}"
+                oninput="updateHoleDistanceNoRender(${holeIdx}, 'blue', parseInt(this.value) || 0)"
                 placeholder="Blue">
-              <input type="number" value="${course.distances.white[i] || ''}" 
-                oninput="updateHoleDistanceNoRender(${i}, 'white', parseInt(this.value) || 0)"
+              <input type="number" value="${course.distances.white[holeIdx] || ''}"
+                oninput="updateHoleDistanceNoRender(${holeIdx}, 'white', parseInt(this.value) || 0)"
                 placeholder="White">
             </div>
-          `).join('')}
+          `;
+        }).join('')}
 
-          <div class="hole-row totals-row" id="outTotalsRow">
-            <div class="totals-label">OUT</div>
-            <div class="totals-cell">Par ${outPar}</div>
-            <div class="totals-cell">-</div>
-            <div class="totals-cell">Blue ${outDistBlue}m</div>
-            <div class="totals-cell">White ${outDistWhite}m</div>
-          </div>
-
-          ${course.holes === 18 ? `
-            <div class="section-divider"></div>
-            <div class="subsection-title">In (10-18홀)</div>
-            
-            <div class="holes-header">
-              <div>홀</div>
-              <div>Par</div>
-              <div>Index</div>
-              <div>Blue(m)</div>
-              <div>White(m)</div>
-            </div>
-
-            ${course.par.slice(9, 18).map((par, i) => {
-              const holeIdx = i + 9;
-              return `
-                <div class="hole-row">
-                  <div class="hole-number">${holeIdx + 1}</div>
-                  <select onchange="updateHoleParNoRender(${holeIdx}, parseInt(this.value))">
-                    <option value="3" ${par === 3 ? 'selected' : ''}>3</option>
-                    <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
-                    <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
-                  </select>
-                  <input type=\"number\" min=\"1\" max=\"36\" step=\"1\" id=\"idx-${holeIdx}\" value=\"${course.strokeIndex && course.strokeIndex[holeIdx] ? course.strokeIndex[holeIdx] : ''}\"
-                    oninput=\"handleStrokeIndexInput(${holeIdx}, this.value)\"
-                    placeholder=\"Idx\">
-                  <input type="number" value="${course.distances.blue[holeIdx] || ''}" 
-                    oninput="updateHoleDistanceNoRender(${holeIdx}, 'blue', parseInt(this.value) || 0)"
-                    placeholder="Blue">
-                  <input type="number" value="${course.distances.white[holeIdx] || ''}" 
-                    oninput="updateHoleDistanceNoRender(${holeIdx}, 'white', parseInt(this.value) || 0)"
-                    placeholder="White">
-                </div>
-              `;
-            }).join('')}
-          ` : ''}
-
-          ${course.holes === 18 ? `
-          <div class="hole-row totals-row" id="inTotalsRow">
-            <div class="totals-label">IN</div>
-            <div class="totals-cell">Par ${inPar}</div>
-            <div class="totals-cell">-</div>
-            <div class="totals-cell">Blue ${inDistBlue}m</div>
-            <div class="totals-cell">White ${inDistWhite}m</div>
-          </div>
-          <div class="hole-row totals-row" id="totalTotalsRow">
-            <div class="totals-label">TOTAL</div>
-            <div class="totals-cell">Par ${totalPar}</div>
-            <div class="totals-cell">-</div>
-            <div class="totals-cell">Blue ${totalDistBlue}m</div>
-            <div class="totals-cell">White ${totalDistWhite}m</div>
-          </div>
-          ` : `
-          <div class="hole-row totals-row" id="totalTotalsRow">
-            <div class="totals-label">TOTAL</div>
-            <div class="totals-cell">Par ${totalPar}</div>
-            <div class="totals-cell">-</div>
-            <div class="totals-cell">Blue ${totalDistBlue}m</div>
-            <div class="totals-cell">White ${totalDistWhite}m</div>
-          </div>
-          `}
-
-          <div id="courseValidationMsg" class="validation-msg">${validation.message || ''}</div>
-
-          <button id="courseSaveBtn" class="primary-btn" onclick="saveCourseAndRefresh()" 
-            ${!validation.ok ? 'disabled' : ''}>
-            ${appState.editingCourse ? '수정 완료' : '코스 저장'}
-          </button>
+        <div class="hole-row totals-row" id="inTotalsRow">
+          <div class="totals-label">IN</div>
+          <div class="totals-cell">Par ${inPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${inDistBlue}m</div>
+          <div class="totals-cell">White ${inDistWhite}m</div>
         </div>
-      `;
 
-      modal.onclick = (e) => {
-        if (e.target === modal) closeCourseModal();
-      };
+        <!-- Summary rows (keep existing OUT above; add OUT between IN and TOTAL) -->
+        <div class="hole-row totals-row" id="outSummaryRow">
+          <div class="totals-label">OUT</div>
+          <div class="totals-cell">Par ${outPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${outDistBlue}m</div>
+          <div class="totals-cell">White ${outDistWhite}m</div>
+        </div>
 
-      return modal;
-    }
+        <div class="hole-row totals-row total" id="totalTotalsRow">
+          <div class="totals-label">TOTAL</div>
+          <div class="totals-cell">Par ${totalPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${totalDistBlue}m</div>
+          <div class="totals-cell">White ${totalDistWhite}m</div>
+        </div>
+      ` : `
+        <div class="hole-row totals-row total" id="totalTotalsRow">
+          <div class="totals-label">TOTAL</div>
+          <div class="totals-cell">Par ${totalPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${totalDistBlue}m</div>
+          <div class="totals-cell">White ${totalDistWhite}m</div>
+        </div>
+      `}
+
+      <div id="courseValidationMsg" class="validation-msg">${validation.message || ''}</div>
+
+      <button id="courseSaveBtn" class="primary-btn" onclick="saveCourseAndRefresh()"
+        ${!validation.ok ? 'disabled' : ''}>
+        ${appState.editingCourse ? '수정 완료' : '코스 저장'}
+      </button>
+    </div>
+  `;
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeCourseModal();
+  };
+
+  return modal;
+}
 
     window.updateNewCourse = function(field, value) {
       appState.newCourse[field] = value;
@@ -1695,6 +1695,17 @@
       const outRow = document.getElementById('outTotalsRow');
       if (outRow) {
         const cells = outRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${outPar}`;
+          cells[2].textContent = `Blue ${outDistBlue}m`;
+          cells[3].textContent = `White ${outDistWhite}m`;
+        }
+      }
+
+
+      const outSummary = document.getElementById('outSummaryRow');
+      if (outSummary) {
+        const cells = outSummary.querySelectorAll('.totals-cell');
         if (cells && cells.length >= 4) {
           cells[0].textContent = `Par ${outPar}`;
           cells[2].textContent = `Blue ${outDistBlue}m`;
