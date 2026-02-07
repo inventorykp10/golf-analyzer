@@ -709,7 +709,114 @@
       display: none;
     }
 
-  </style>
+  
+    /* ========== HOME (NEW TILE LAYOUT) ========== */
+    .home-shell{
+      background: rgba(255,255,255,0.65);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: clamp(14px, 2vh, 20px);
+      display:flex;
+      flex-direction:column;
+      gap: 18px;
+      min-height: calc(100vh - var(--nav-h) - 24px);
+      justify-content: flex-start;
+    }
+    .home-brand{
+      text-align:center;
+      padding-top: 6px;
+    }
+    .home-brand-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+    }
+    .home-flag{
+      font-size: 28px;
+      line-height: 1;
+    }
+    .home-brand-title{
+      font-family: 'Bebas Neue', cursive;
+      font-size: 34px;
+      letter-spacing: 1px;
+      color: var(--green-primary);
+    }
+    .home-start-btn{
+      width:100%;
+      border:none;
+      background: var(--green-primary);
+      color:white;
+      border-radius: 18px;
+      padding: 46px 16px;
+      font-size: 28px;
+      font-weight: 700;
+      cursor:pointer;
+      box-shadow: var(--shadow);
+    }
+    .home-start-btn:hover{ background: var(--green-secondary); }
+    .home-tiles{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 6px;
+    }
+    .home-tile{
+      background:white;
+      border: 3px solid var(--green-primary);
+      border-radius: 18px;
+      padding: 22px 10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      cursor:pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .home-tile.active{ background: rgba(127,176,105,0.10); }
+    .home-tile.placeholder{
+      border-color: rgba(0,0,0,0.10);
+      background: transparent;
+      box-shadow: none;
+      cursor: default;
+    }
+    .tile-icon{ font-size: 40px; line-height: 1; }
+    .tile-label{
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--green-primary);
+    }
+    .home-version{
+      text-align:center;
+      opacity:0.55;
+      font-size: 14px;
+      margin-top: auto;
+      padding: 10px 0 4px;
+    }
+    .home-resume{
+      background: rgba(229,220,197,0.55);
+      border: 2px solid var(--sand);
+      border-radius: 14px;
+      padding: 12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .home-resume-text{ font-size: 14px; color: var(--brown); }
+    .home-resume-btn{
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: none;
+      background: var(--green-primary);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .home-resume-btn:hover{ background: var(--green-secondary); }
+</style>
 </head>
 <body>
   <div id="app"></div>
@@ -946,7 +1053,7 @@
           };
           app.appendChild(backBtn);
         }
-        app.appendChild(renderBottomNav());
+        if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
       }
 
       // 모달 렌더링
@@ -1035,61 +1142,63 @@
     function renderHomePage(container) {
       const inProgressRound = appState.data.rounds.find(r => r.status === 'in-progress');
 
+      container.classList.add('scrollable');
       container.innerHTML = `
-        <h1 class="page-title">⛳ Golf Round Analyzer</h1>
-        
-        ${inProgressRound ? `
-          <div class="section">
-            <h2 class="section-title">진행 중인 라운드</h2>
-            <p style="margin-bottom: 12px;">
-              ${inProgressRound.course} • ${inProgressRound.holes.length}/18 홀 완료
-            </p>
-            <button class="primary-btn" onclick="resumeRound()">
-              라운드 계속하기
-            </button>
+        <div class="home-shell">
+          <div class="home-brand">
+            <div class="home-brand-row">
+              <div class="home-flag">⛳</div>
+              <div class="home-brand-title">GOLF ROUND ANALYZER</div>
+            </div>
           </div>
-        ` : ''}
 
-        <div class="section grow" style="justify-content:space-between;">
-          <button class="primary-btn" onclick="goToPage(1)" style="padding:4vh 16px; font-size:18px;">
+          ${inProgressRound ? `
+            <div class="home-resume">
+              <div class="home-resume-text">
+                진행 중: <b>${inProgressRound.course}</b> • ${inProgressRound.holes.length}/18 홀
+              </div>
+              <button class="home-resume-btn" onclick="resumeRound()">계속하기</button>
+            </div>
+          ` : ''}
+
+          <button class="home-start-btn" onclick="goToPage(1)">
             🏌️ 새 라운드 시작
           </button>
-          <div class="home-quick-actions">
-            <button class="secondary-btn" onclick="goToPage(2)" style="margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📊 통계</button>
-            <button class="secondary-btn" onclick="goToPage(3)" style="margin-bottom:0; padding:3.2vh 8px; font-size:16px;">📋 기록</button>
-          </div>
 
-          <h2 class="section-title" 
-              style="text-align:center; 
-                    margin: 1.4vh 0 0.0vh 0;   /* 위 여백 줄이고 아래 여백 늘림 */
-                    font-size: 20px;
-                    font weight: 700">         
-            📄 스코어 카드 이미지로 코스 등록
-          </h2>
-
-
-          <div style="margin-top: -5.0vh;">
-          <div class="home-quick-actions">
-            <button class="secondary-btn" onclick="uploadCamera()" 
-              style="background:var(--green-primary);color:white;border-color:var(--green-primary);margin-bottom:0; padding:3.2vh 8px; font-size:16px;">
-              📷 카메라
+          <div class="home-tiles">
+            <button class="home-tile active" onclick="goToPage(0)">
+              <div class="tile-icon">🏠</div>
+              <div class="tile-label">홈</div>
             </button>
 
-            <button class="secondary-btn" onclick="uploadGallery()" 
-              style="background:#5a9e4b;color:white;border-color:#5a9e4b;margin-bottom:0; padding:3.2vh 8px; font-size:16px;">
-              🖼️ 갤러리
+            <button class="home-tile" onclick="goToPage(1)">
+              <div class="tile-icon">⛳</div>
+              <div class="tile-label">라운드</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(2)">
+              <div class="tile-icon">📊</div>
+              <div class="tile-label">통계</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(3)">
+              <div class="tile-icon">📋</div>
+              <div class="tile-label">기록</div>
+            </button>
+
+            <div class="home-tile placeholder" aria-hidden="true"></div>
+
+            <button class="home-tile" onclick="goToPage(4)">
+              <div class="tile-icon">⚙️</div>
+              <div class="tile-label">설정</div>
             </button>
           </div>
-        </div>
 
-
-        <div style="text-align: center; padding: 6px; flex-shrink:0;">
-          <p style="opacity: 0.5; font-size: 12px;">v9.0.0 • Par 입력 개선</p>
+          <div class="home-version">v9.0.0 • Par 입력 개선</div>
         </div>
       `;
     }
-
-    window.goToPage = function(page) {
+window.goToPage = function(page) {
       appState.pageHistory.push(appState.currentPage);
       appState.currentPage = page;
       render();
@@ -2692,7 +2801,7 @@
         container.className = 'page-container';
         renderByPage(container);
         app.appendChild(container);
-        app.appendChild(renderBottomNav());
+        if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
       } else {
         originalRender();
       }
