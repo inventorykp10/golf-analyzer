@@ -715,14 +715,15 @@
       background: rgba(255,255,255,0.65);
       border-radius: 22px;
       box-shadow: var(--shadow);
-      padding: clamp(14px, 2vh, 20px);
+      padding: 14px;
       display:flex;
       flex-direction:column;
-      gap: 18px;
-      min-height: calc(100vh - var(--nav-h) - 24px);
+      gap: 14px;
+      /* 홈은 하단 네비가 숨겨지므로, 화면에 과하게 커지지 않도록 */
+      min-height: unset;
       justify-content: flex-start;
     }
-    .home-brand{
+.home-brand{
       text-align:center;
       padding-top: 6px;
     }
@@ -748,46 +749,47 @@
       background: var(--green-primary);
       color:white;
       border-radius: 18px;
-      padding: 46px 16px;
-      font-size: 28px;
+      padding: 28px 14px;
+      font-size: 24px;
       font-weight: 700;
       cursor:pointer;
       box-shadow: var(--shadow);
     }
-    .home-start-btn:hover{ background: var(--green-secondary); }
+.home-start-btn:hover{ background: var(--green-secondary); }
     .home-tiles{
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 6px;
+      gap: 12px;
+      margin-top: 2px;
     }
-    .home-tile{
+.home-tile{
       background:white;
       border: 3px solid var(--green-primary);
       border-radius: 18px;
-      padding: 22px 10px;
+      padding: 14px 8px;
+      min-height: 118px;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap: 10px;
+      gap: 8px;
       cursor:pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .home-tile.active{ background: rgba(127,176,105,0.10); }
+.home-tile.active{ background: rgba(127,176,105,0.10); }
     .home-tile.placeholder{
       border-color: rgba(0,0,0,0.10);
       background: transparent;
       box-shadow: none;
       cursor: default;
     }
-    .tile-icon{ font-size: 40px; line-height: 1; }
-    .tile-label{
-      font-size: 22px;
+    .tile-icon{ font-size: 34px; line-height: 1; }
+.tile-label{
+      font-size: 18px;
       font-weight: 700;
       color: var(--green-primary);
     }
-    .home-version{
+.home-version{
       text-align:center;
       opacity:0.55;
       font-size: 14px;
@@ -816,6 +818,13 @@
       white-space: nowrap;
     }
     .home-resume-btn:hover{ background: var(--green-secondary); }
+
+    @media (max-width: 380px){
+      .home-start-btn{ padding: 24px 12px; font-size: 22px; }
+      .home-tile{ min-height: 110px; padding: 12px 8px; }
+      .tile-icon{ font-size: 32px; }
+      .tile-label{ font-size: 17px; }
+    }
 </style>
 </head>
 <body>
