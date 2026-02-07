@@ -825,6 +825,88 @@
       .tile-icon{ font-size: 32px; }
       .tile-label{ font-size: 17px; }
     }
+
+/* ========================================
+   ROUND START PAGE (Layout like screenshot)
+   ======================================== */
+.roundstart-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.roundstart-flag{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transform: translateY(-1px);
+}
+.roundstart-shell{
+  justify-content:center;
+}
+.roundstart-inner{
+  width:100%;
+  max-width:520px;
+  margin:0 auto;
+  padding:26px 22px 28px;
+}
+.roundstart-label{
+  font-size:20px;
+  font-weight:800;
+  color:#21440f;
+  margin:6px 0 14px;
+}
+.roundstart-primary{
+  width:100%;
+  padding:22px 16px;
+  font-size:18px;
+  border-radius:22px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+}
+.scorecard-box{
+  margin-top:24px;
+  border:3px solid #111;
+  border-radius:20px;
+  padding:18px 16px 20px;
+  background:#fff;
+}
+.scorecard-box-title{
+  text-align:center;
+  font-size:22px;
+  font-weight:900;
+  color:#21440f;
+  margin:4px 0 18px;
+}
+.scorecard-btn-row{
+  display:flex;
+  gap:14px;
+}
+.scorecard-btn{
+  flex:1;
+  height:64px;
+  border-radius:18px;
+  border:2px solid rgba(0,0,0,0.12);
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+}
+.scorecard-btn .btn-ico{
+  margin-right:8px;
+}
+.scorecard-btn-dark{
+  background:#1f4b11;
+  color:#fff;
+}
+.scorecard-btn-light{
+  background:#5aa244;
+  color:#fff;
+}
+@media (max-width: 420px){
+  .roundstart-inner{ padding:22px 18px 24px; }
+  .scorecard-box-title{ font-size:20px; }
+  .scorecard-btn{ height:60px; font-size:17px; }
+}
+
 </style>
 </head>
 <body>
@@ -842,6 +924,7 @@
 
 
   <script>
+
     // ========================================
     // DEFAULT COURSES
     // ========================================
@@ -918,8 +1001,6 @@
       showRoundSummaryModal: false,
       newCourse: null,
       editingCourse: null,
-      isNewCourseRound: false, // 새 코스 라운드 플래그
-      newCourseData: null // 새 코스 빌드업 데이터
     };
     // ========================================
     // SAFETY: Prevent blank screen on runtime errors
@@ -1109,8 +1190,6 @@
       appState.shots = [];
       appState.currentShot = null;
       appState.puttingData = null;
-      appState.isNewCourseRound = false;
-      appState.newCourseData = null;
       appState.currentPage = 0;
     }
 
@@ -1229,31 +1308,38 @@ window.goToPage = function(page) {
     // ========================================
     function renderRoundStartPage(container) {
       container.innerHTML = `
-        <h1 class="page-title">⛳ 새 라운드</h1>
-        
-        <div class="section grow" style="justify-content:center;">
-          <h2 class="section-title">라운드 방식 선택</h2>
-          
-          <div class="round-type-buttons">
-            <button class="secondary-btn" onclick="selectRoundType('existing')">
-              📋 코스 선택 (등록된 코스)
+        <h1 class="page-title roundstart-title"><span class="roundstart-flag">⛳</span> 새 라운드</h1>
+
+        <div class="section grow roundstart-shell">
+          <div class="roundstart-inner">
+            <div class="roundstart-label">코스 선택</div>
+
+            <button class="primary-btn roundstart-primary" onclick="goToExistingCourseSelection()">
+              <span class="btn-ico">📋</span>
+              등록된 코스에서 선택
             </button>
-            
-            <button class="secondary-btn" onclick="selectRoundType('new')">
-              ➕ 새 코스 (라운드하면서 등록)
-            </button>
+
+            <div class="scorecard-box">
+              <div class="scorecard-box-title">📄 스코어 카드 이미지로 코스 등록</div>
+              <div class="scorecard-btn-row">
+                <button class="scorecard-btn scorecard-btn-dark" onclick="triggerScorecardCamera()">
+                  <span class="btn-ico">📷</span> 카메라
+                </button>
+                <button class="scorecard-btn scorecard-btn-light" onclick="triggerScorecardGallery()">
+                  <span class="btn-ico">🖼️</span> 갤러리
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       `;
     }
 
 
+
+
     window.selectRoundType = function(type) {
-      if (type === 'existing') {
-        appState.currentPage = 10; // 기존 코스 선택 페이지
-      } else {
-        appState.currentPage = 11; // 새 코스 입력 페이지
-      }
+      appState.currentPage = 10;
       render();
     };
 
@@ -1329,86 +1415,8 @@ window.goToPage = function(page) {
           status: 'in-progress'
         };
         appState.currentHole = 1;
-        appState.isNewCourseRound = false;
         render();
       }
-    };
-
-    // ========================================
-    // NEW COURSE INPUT PAGE
-    // ========================================
-    function renderNewCourseInputPage(container) {
-      container.innerHTML = `
-        <h1 class="page-title">새 코스</h1>
-        
-        <div class="section grow" style="justify-content:center;">
-          <h2 class="section-title">코스 정보</h2>
-          
-          <div class="input-section">
-            <label>코스 이름</label>
-            <input type="text" class="text-input" id="new-course-name"
-              placeholder="예: 스카이72 오션">
-          </div>
-
-          <div class="input-section">
-            <label>티박스 선택</label>
-            <div class="button-group">
-              <button class="choice-btn ${appState.selectedTeeBox === 'blue' ? 'selected' : ''}" 
-                onclick="selectNewCourseTeeBox('blue')">
-                🔵 Blue
-              </button>
-              <button class="choice-btn ${appState.selectedTeeBox === 'white' ? 'selected' : ''}" 
-                onclick="selectNewCourseTeeBox('white')">
-                ⚪ White
-              </button>
-            </div>
-          </div>
-
-          <button class="primary-btn" onclick="startNewCourseRound()">
-            라운드 시작
-          </button>
-        </div>
-      `;
-    }
-
-    window.selectNewCourseTeeBox = function(teeBox) {
-      appState.selectedTeeBox = teeBox;
-      render();
-    };
-
-    window.startNewCourseRound = function() {
-      const courseName = document.getElementById('new-course-name').value.trim();
-      
-      if (!courseName) {
-        alert('코스 이름을 입력해주세요.');
-        return;
-      }
-
-      appState.isNewCourseRound = true;
-      appState.newCourseData = {
-        id: 'course_' + Date.now(),
-        name: courseName,
-        location: '', // 나중에 추가 가능
-        holes: 18,
-        par: [],
-        distances: {
-          blue: [],
-          white: []
-        }
-      };
-
-      appState.activeRound = {
-        id: Date.now(),
-        courseId: 'new_course',
-        course: courseName,
-        teeBox: appState.selectedTeeBox,
-        date: new Date().toISOString(),
-        holes: [],
-        status: 'in-progress'
-      };
-      
-      appState.currentHole = 1;
-      render();
     };
 
     // ========================================
@@ -1876,8 +1884,7 @@ window.goToPage = function(page) {
     // PAR INPUT (새 코스일 때 거리도 입력)
     // ========================================
     function renderParInput(container) {
-      const isNewCourse = appState.isNewCourseRound;
-      const holeIndex = appState.currentHole - 1;
+const holeIndex = appState.currentHole - 1;
       
       let defaultPar = 4;
       let defaultDistance = '';
@@ -1970,13 +1977,6 @@ window.goToPage = function(page) {
       if (!appState.holePar) appState.holePar = 4;
       appState.holeDistance = distance;
 
-      // 새 코스인 경우 데이터 저장
-      if (appState.isNewCourseRound) {
-        const holeIndex = appState.currentHole - 1;
-        appState.newCourseData.par[holeIndex] = appState.holePar;
-        appState.newCourseData.distances[appState.selectedTeeBox][holeIndex] = parseInt(distance) || 0;
-      }
-
       // 샷 입력 시작
       startTeeShot();
     };
@@ -1990,17 +1990,6 @@ window.goToPage = function(page) {
     function finishRound() {
       appState.activeRound.status = 'completed';
       appState.data.rounds.push(appState.activeRound);
-      
-      // 새 코스였다면 코스 등록
-      if (appState.isNewCourseRound && appState.newCourseData) {
-        // 나머지 홀 데이터 채우기 (입력 안 한 홀은 Par 4, 0m로)
-        while (appState.newCourseData.par.length < 18) {
-          appState.newCourseData.par.push(4);
-          appState.newCourseData.distances[appState.selectedTeeBox].push(0);
-        }
-        
-        appState.data.courses.push(appState.newCourseData);
-      }
       
       saveData();
       
@@ -2501,14 +2490,7 @@ window.goToPage = function(page) {
           <div style="text-align: center; margin-bottom: 16px; opacity: 0.8;">
             ${round.course} • ${appState.selectedTeeBox === 'blue' ? '🔵 Blue' : '⚪ White'}
           </div>
-
-          ${appState.isNewCourseRound ? `
-            <div class="info-box" style="margin-bottom: 16px;">
-              ✓ 새 코스가 등록되었습니다!
-            </div>
-          ` : ''}
-
-          <button class="primary-btn" onclick="closeRoundSummary()">
+<button class="primary-btn" onclick="closeRoundSummary()">
             기록 확인하기
           </button>
         </div>
@@ -2525,8 +2507,6 @@ window.goToPage = function(page) {
       appState.showRoundSummaryModal = false;
       appState.activeRound = null;
       appState.currentHole = 1;
-      appState.isNewCourseRound = false;
-      appState.newCourseData = null;
       appState.currentPage = 3;
       render();
     };
@@ -2793,7 +2773,6 @@ window.goToPage = function(page) {
     function renderByPage(container) {
       switch (appState.currentPage) {
         case 10: renderExistingCourseSelectionPage(container); break;
-        case 11: renderNewCourseInputPage(container); break;
         case 12: renderTeeboxSelectionPage(container); break;
         default:
           render();
@@ -2803,7 +2782,7 @@ window.goToPage = function(page) {
     // Override render for page routing
     const originalRender = render;
     render = function() {
-      if (appState.currentPage >= 10 && appState.currentPage <= 12 && !appState.activeRound) {
+      if ((appState.currentPage === 10 || appState.currentPage === 12) && !appState.activeRound) {
         const app = document.getElementById('app');
         app.innerHTML = '';
         const container = document.createElement('div');
@@ -2977,10 +2956,27 @@ function fillCourseFromAI(data) {
 }
 
     // ========================================
+    // SCORECARD SHORTCUTS (Round Start)
+    // ========================================
+    window.triggerScorecardCamera = function() {
+      const el = document.getElementById('scorecard-camera');
+      if (el) el.click();
+      else alert('카메라 입력 요소를 찾을 수 없습니다.');
+    };
+
+    window.triggerScorecardGallery = function() {
+      const el = document.getElementById('scorecard-upload');
+      if (el) el.click();
+      else alert('갤러리 입력 요소를 찾을 수 없습니다.');
+    };
+
+
+    // ========================================
     // INIT
     // ========================================
     loadData();
     render();
+  
   </script>
 </body>
 </html>
