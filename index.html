@@ -1500,6 +1500,24 @@ window.goToPage = function(page) {
           </div>
         </div>
       `;
+
+      // ★★★ 위치 기준 고정 ★★★
+      container.style.position = 'relative';
+
+      // ====== 티박스 선택 화면 전용 뒤로가기 버튼 ======
+      const backBtn = document.createElement('button');
+      backBtn.className = 'back-button';
+      backBtn.innerHTML = '←';
+      backBtn.style.position = 'absolute';
+      backBtn.style.top = '16px';
+      backBtn.style.left = '16px';
+      backBtn.onclick = function() {
+        appState.currentPage = 1;   // 라운드 시작 화면으로 이동
+        render();
+      };
+
+  container.appendChild(backBtn);
+
     }
 
     window.selectTeeBoxAndStart = function(teeBox) {
