@@ -993,6 +993,7 @@
       activeRound: null,
       currentHole: 1,
       selectedTeeBox: 'blue',
+      pendingHandicap: '',
       holePar: null,
       holeDistance: '',
       shots: [],
@@ -1484,19 +1485,42 @@ window.goToPage = function(page) {
 
       container.innerHTML = `
         <h1 class="page-title">티박스 선택</h1>
-        
+
         <div class="section">
           <h2 class="section-title">${course.name}</h2>
-          
+
+          <div style="margin: 12px 0 16px;">
+            <label class="input-label">핸디캡 (Playing Handicap)</label>
+            <input 
+              type="number" 
+              class="text-input" 
+              id="handicapInput"
+              inputmode="numeric"
+              min="0"
+              max="54"
+              step="1"
+              placeholder="예: 18"
+              value="${appState.pendingHandicap ?? ''}"
+              oninput="setPendingHandicap(this.value)"
+            />
+            <div class="helper-text" style="margin-top: 6px; opacity: 0.75;">
+              * Stableford 계산에만 사용됩니다.
+            </div>
+          </div>
+
           <div class="button-group">
             <button class="choice-btn ${appState.selectedTeeBox === 'blue' ? 'selected' : ''}" 
-              onclick="selectTeeBoxAndStart('blue')">
+              onclick="selectTeeBox('blue')">
               🔵 Blue
             </button>
             <button class="choice-btn ${appState.selectedTeeBox === 'white' ? 'selected' : ''}" 
-              onclick="selectTeeBoxAndStart('white')">
+              onclick="selectTeeBox('white')">
               ⚪ White
             </button>
+          </div>
+
+          <div style="margin-top: 18px;">
+            <button class="primary-btn" onclick="startRoundFromTeeboxSelection()">라운드 시작</button>
           </div>
         </div>
       `;
@@ -1520,19 +1544,65 @@ window.goToPage = function(page) {
 
     }
 
-    window.selectTeeBoxAndStart = function(teeBox) {
+    window.setPendingHandicap = function(value) {
+      // 저장은 라운드 시작 시점에만 합니다. (이 값은 화면 유지용)
+      appState.pendingHandicap = value;
+    };
+
+    window.selectTeeBox = function(teeBox) {
+      // ✅ 티박스는 '선택만' 저장 (라운드 시작/홀 이동은 하지 않음)
+      appState.selectedTeeBox = teeBox;
+      render();
+    };
+
+    window.startRoundFromTeeboxSelection = function() {
       const course = appState.data.courses.find(c => c.id === appState.selectedCourseId);
-      if (course) {
-        appState.selectedTeeBox = teeBox;
-        appState.activeRound = {
-          id: Date.now(),
-          courseId: course.id,
-          course: course.name,
-          teeBox: teeBox,
-          date: new Date().toISOString(),
-          holes: [],
-          status: 'in-progress'
-        };
+      if (!course) {
+        alert('코스를 찾을 수 없습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      if (!appState.selectedTeeBox) {
+        alert('티박스를 선택해주세요.');
+        return;
+      }
+
+      const raw = (appState.pendingHandicap ?? '').toString().trim();
+      if (raw === '') {
+        alert('핸디캡을 입력해주세요. (0 이상 정수)');
+        return;
+      }
+
+      const handicap = parseInt(raw, 10);
+      if (!Number.isFinite(handicap) || handicap < 0 || handicap > 54) {
+        alert('핸디캡은 0~54 범위의 정수로 입력해주세요.');
+        return;
+      }
+
+      // ✅ 라운드 시작(여기서만 activeRound 생성)
+      appState.activeRound = {
+        id: Date.now(),
+        courseId: course.id,
+        course: course.name,
+        teeBox: appState.selectedTeeBox,
+        handicap: handicap,
+        date: new Date().toISOString(),
+        holes: [],
+        status: 'in-progress'
+      };
+
+      appState.currentHole = 1;
+      render();
+    };
+
+    // (호환용) 예전 호출이 남아있을 수 있으므로 유지
+    window.selectTeeBoxAndStart = function(teeBox) {
+      appState.selectedTeeBox = teeBox;
+      // 예전 플로우(즉시 시작)가 필요하면 아래를 호출:
+      // startRoundFromTeeboxSelection();
+      render();
+    };
+
         appState.currentHole = 1;
         render();
       }
