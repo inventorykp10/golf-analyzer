@@ -2964,8 +2964,10 @@ const holeIndex = appState.currentHole - 1;
       document.getElementById('upload-loading').classList.add('active');
 
       try {
-        const base64Data = await fileToBase64(file);
-        const mimeType = file.type || 'image/jpeg';
+        // ✅ 이미지 자동 최적화(리사이즈 + JPEG 변환) 후 전송
+        const prepared = await fileToBase64(file);
+        const base64Data = prepared.base64Data;
+        const mimeType = prepared.mimeType;
 
         const extractedData = await callScorecardProxy(proxyBaseUrl, base64Data, mimeType);
         fillCourseFromAI(extractedData);
@@ -2978,37 +2980,172 @@ const holeIndex = appState.currentHole - 1;
       }
     };
 
-    function fileToBase64(file) {
+    
+    // ========================================
+    // SCORECARD IMAGE PREP (resize + JPEG encode)
+    // ========================================
+    // 반환: { base64Data, mimeType }
+    // - base64Data는 'data:image/..;base64,' 접두사 없는 순수 Base64 문자열
+    // - mimeType은 서버로 전달할 MIME (기본 image/jpeg)
+    async function fileToBase64(file) {
+      const MAX_DIM = 2000;     // 긴 변 기준 최대 px
+      const JPEG_QUALITY = 0.82;
+
+      // HEIC/HEIF 안내 (일부 브라우저/서버에서 처리 불가)
+      const type = (file && file.type ? String(file.type) : '').toLowerCase();
+      const isHeic = type.includes('heic') || type.includes('heif');
+
+      // 작은 JPEG/PNG는 그대로 보내도 무방 (불필요한 재인코딩 방지)
+      try {
+        if (!isHeic && file && file.size && file.size <= 900 * 1024 && (type === 'image/jpeg' || type === 'image/png' || type === 'image/webp')) {
+          const base64DataRaw = await _readFileAsBase64(file);
+          return { base64Data: base64DataRaw, mimeType: (type || 'image/jpeg') };
+        }
+      } catch (_) {
+        // 아래에서 재시도
+      }
+
+      // ✅ 이미지 디코딩 → 캔버스 리사이즈 → JPEG로 재인코딩
+      let bitmap = null;
+      try {
+        if ('createImageBitmap' in window) {
+          bitmap = await createImageBitmap(file);
+        } else {
+          // createImageBitmap 미지원 브라우저 fallback
+          const dataUrl = await _readFileAsDataUrl(file);
+          const img = await _loadImage(dataUrl);
+          bitmap = img;
+        }
+      } catch (e) {
+        if (isHeic) {
+          throw new Error('HEIC(아이폰 사진) 형식으로 보입니다.\n\n해결 방법:\n1) 사진을 "스크린샷"으로 저장(JPEG/PNG) 후 업로드\n또는\n2) iPhone 설정 > 카메라 > 포맷 > "호환성 우선"으로 변경 후 다시 촬영\n\n원인: 이 브라우저/서버 조합에서 HEIC를 처리하지 못할 수 있습니다.');
+        }
+        throw new Error('이미지 파일을 열 수 없습니다.\n파일 형식/손상 여부를 확인 후 다시 시도해 주세요.');
+      }
+
+      const srcW = bitmap.width || bitmap.naturalWidth || 0;
+      const srcH = bitmap.height || bitmap.naturalHeight || 0;
+      if (!srcW || !srcH) {
+        throw new Error('이미지 크기를 확인할 수 없습니다. 다른 이미지로 다시 시도해 주세요.');
+      }
+
+      const scale = Math.min(1, MAX_DIM / Math.max(srcW, srcH));
+      const outW = Math.max(1, Math.round(srcW * scale));
+      const outH = Math.max(1, Math.round(srcH * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (!ctx) throw new Error('브라우저에서 이미지 변환을 지원하지 않습니다.');
+      ctx.drawImage(bitmap, 0, 0, outW, outH);
+
+      // 메모리 정리
+      try { if (bitmap && bitmap.close) bitmap.close(); } catch (_) {}
+
+      const blob = await _canvasToBlob(canvas, 'image/jpeg', JPEG_QUALITY);
+      const base64Data = await _readBlobAsBase64(blob);
+
+      return { base64Data, mimeType: 'image/jpeg' };
+    }
+
+    function _readFileAsDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(',')[1]);
-        reader.onerror = reject;
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
         reader.readAsDataURL(file);
+      });
+    }
+
+    function _readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          const idx = s.indexOf(',');
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function _loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+        img.src = src;
+      });
+    }
+
+    function _canvasToBlob(canvas, mime, quality) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('이미지 변환에 실패했습니다.'));
+          resolve(blob);
+        }, mime, quality);
+      });
+    }
+
+    function _readBlobAsBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          const idx = s.indexOf(',');
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        reader.onerror = () => reject(new Error('이미지 변환 결과를 읽을 수 없습니다.'));
+        reader.readAsDataURL(blob);
       });
     }
 
     async function callScorecardProxy(proxyBaseUrl, base64Data, mimeType) {
       const url = proxyBaseUrl + '/api/scorecard';
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64Data, mimeType })
-      });
+      // ✅ fetch 무한 대기 방지 (타임아웃)
+      const controller = new AbortController();
+      const TIMEOUT_MS = 30000;
+      const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-      if (!response.ok) {
-        const errText = await response.text();
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data, mimeType }),
+          signal: controller.signal
+        });
 
-        // 404/405는 보통 "서버 주소/엔드포인트가 다름" 또는 "GET/POST 불일치" 케이스가 많음
-        if (response.status === 404 || response.status === 405) {
-          throw new Error(`프록시 호출 실패: ${response.status}\n요청 URL: ${url}\n\n서버 주소가 잘못되었거나, 서버가 /api/scorecard POST를 지원하지 않습니다.\n설정(⚙️) → 스코어카드 분석 서버에서 주소를 확인 후 다시 시도하세요.\n\n${errText ? ('서버 응답: ' + errText) : ''}`);
+        if (!response.ok) {
+          const errText = await response.text();
+
+          // 404/405는 보통 "서버 주소/엔드포인트가 다름" 또는 "GET/POST 불일치" 케이스가 많음
+          if (response.status === 404 || response.status === 405) {
+            throw new Error(`프록시 호출 실패: ${response.status}\n요청 URL: ${url}\n\n서버 주소가 잘못되었거나, 서버가 /api/scorecard POST를 지원하지 않습니다.\n설정(⚙️) → 스코어카드 분석 서버에서 주소를 확인 후 다시 시도하세요.\n\n${errText ? ('서버 응답: ' + errText) : ''}`);
+          }
+
+          // 413 Payload Too Large
+          if (response.status === 413) {
+            throw new Error('이미지 용량이 너무 큽니다.\n\n해결 방법:\n• 스코어카드가 화면을 꽉 차게 촬영(여백 최소)\n• 스크린샷 업로드(JPEG/PNG)\n• 해상도를 낮춰 다시 업로드\n\n(시스템이 자동으로 최적화를 시도하지만, 원본이 매우 크면 실패할 수 있습니다.)');
+          }
+
+          throw new Error('프록시 호출 실패: ' + response.status + ' ' + errText);
         }
 
-        throw new Error('프록시 호출 실패: ' + response.status + ' ' + errText);
-      }
+        // 서버는 최종 JSON(코스 정보)을 반환해야 합니다.
+        return await response.json();
 
-      // 서버는 최종 JSON(코스 정보)을 반환해야 합니다.
-      return await response.json();
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          throw new Error('서버 응답이 지연되어 중단했습니다. (30초)\n\n• 네트워크 상태를 확인 후 다시 시도해 주세요.\n• 문제가 반복되면 잠시 후 재시도하거나, 다른 이미지(스크린샷/JPEG)로 시도해 보세요.');
+        }
+        throw e;
+      } finally {
+        clearTimeout(t);
+      }
     }
 
 function fillCourseFromAI(data) {
