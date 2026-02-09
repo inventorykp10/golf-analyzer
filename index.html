@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#2d5016">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192x192.png">
-  <title>Golf Round Analyzer ⛳ v9</title>
+  <title>Golf Round Analyzer ⛳ v9.3</title>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap');
@@ -141,6 +141,77 @@
       flex-shrink: 0;
     }
 
+    /* 통합 샷 헤더 */
+    .shot-header-unified {
+      background: white;
+      padding: clamp(12px, 2vh, 18px) clamp(14px, 2.5vw, 20px);
+      border-radius: 16px;
+      margin-bottom: 1.5vh;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--green-light);
+      flex-shrink: 0;
+    }
+
+    .shot-header-row-1,
+    .shot-header-row-2 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .shot-header-row-1 {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .shot-header-left {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex: 1;
+    }
+
+    .shot-header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .score-item {
+      font-size: 13px;
+      color: var(--brown);
+      white-space: nowrap;
+    }
+
+    .score-item b {
+      font-size: 15px;
+      color: var(--green-primary);
+      margin-left: 4px;
+    }
+
+    .index-badge-inline,
+    .shot-allowance-badge-inline {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .index-badge-inline {
+      background: #dfe8d6;
+      color: var(--green-primary);
+    }
+
+    .shot-allowance-badge-inline {
+      background: #fff2cc;
+      color: var(--brown);
+    }
+
     .shot-info {
       display: flex;
       gap: 8px;
@@ -175,7 +246,31 @@
       color: var(--brown);
     }
 
-    .shot-number {
+    
+    /* 홀 정보 배지 추가 (Index / Shot +N) */
+    .index-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: #dfe8d6;
+      color: var(--green-primary);
+      font-weight: 600;
+    }
+
+    .shot-allowance-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: #fff2cc;
+      color: var(--brown);
+      font-weight: 700;
+    }
+
+    /* 홀 정보(shot-header) 폰트 통일 */
+    .shot-header, .shot-header * {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+.shot-number {
       font-size: clamp(15px, 2vh, 18px);
       font-weight: 700;
       color: var(--green-primary);
@@ -364,6 +459,73 @@
       border-radius: 4px;
       font-size: 13px;
     }
+
+    /* 홀 정보 카드 */
+    .hole-info-card {
+      background: white;
+      padding: clamp(14px, 2.5vh, 20px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5vh;
+      border: 2px solid var(--green-light);
+    }
+
+    .hole-info-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--sand);
+    }
+
+    .hole-info-main {
+      font-size: clamp(18px, 2.8vh, 24px);
+      font-weight: 700;
+      color: var(--green-primary);
+    }
+
+    .hole-info-tee {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--blue);
+      color: white;
+    }
+
+    .hole-info-tee.white {
+      background: #888;
+    }
+
+    .hole-info-details {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hole-info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--cream);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .hole-info-item.index {
+      background: #dfe8d6;
+      color: var(--green-primary);
+    }
+
+    .hole-info-item.shot {
+      background: #fff2cc;
+      color: var(--brown);
+    }
+
 
     /* ========== BOTTOM NAVIGATION ========== */
     .bottom-nav {
@@ -601,13 +763,15 @@
     }
 
     .par-summary {
-      background: var(--sand);
-      padding: 10px;
-      border-radius: 8px;
+      background: white;
+      padding: clamp(14px, 2.5vh, 20px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
       margin-bottom: 12px;
+      border: 2px solid var(--sand);
     }
 
-    .par-summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+    .par-summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
     .par-summary-row:last-child { margin-bottom: 0; }
     .par-summary-row.total { font-weight: 600; padding-top: 5px; border-top: 1px solid var(--brown); opacity: 0.3; }
 
@@ -1485,7 +1649,7 @@ case 4: renderSettingsPage(container); break;
             </button>
           </div>
 
-          <div class="home-version">v9.0.0 • Par 입력 개선</div>
+          <div class="home-version">v9.3.0 • 스코어카드 AI 분석</div>
         </div>
       `;
     }
@@ -1524,6 +1688,10 @@ window.goToPage = function(page) {
 
             <div class="scorecard-box">
               <div class="scorecard-box-title">📄 스코어 카드 이미지로 코스 등록</div>
+              <p style="font-size: 13px; opacity: 0.75; margin-bottom: 14px; line-height: 1.5; text-align: center;">
+                골프장 스코어카드를 촬영하거나 업로드하면<br>
+                AI가 자동으로 코스 정보를 분석합니다
+              </p>
               <div class="scorecard-btn-row">
                 <button class="scorecard-btn scorecard-btn-dark" onclick="triggerScorecardCamera()">
                   <span class="btn-ico">📷</span> 카메라
@@ -1532,6 +1700,10 @@ window.goToPage = function(page) {
                   <span class="btn-ico">🖼️</span> 갤러리
                 </button>
               </div>
+              <p style="font-size: 11px; opacity: 0.6; margin-top: 12px; line-height: 1.4; text-align: center;">
+                💡 스코어카드가 잘 보이도록 촬영하고<br>
+                여백을 최소화하면 인식률이 향상됩니다
+              </p>
             </div>
           </div>
         </div>
@@ -2226,6 +2398,7 @@ const holeIndex = appState.currentHole - 1;
 
       let defaultPar = 4;
       let defaultDistance = '';
+      let defaultIndex = null;
       
       // 기존 코스의 경우
       if (!isNewCourse && appState.activeRound.courseId !== 'new_course') {
@@ -2236,14 +2409,42 @@ const holeIndex = appState.currentHole - 1;
             defaultDistance = course.distances[appState.selectedTeeBox][holeIndex] || '';
           }
         }
+
+          // Hole Index (Stroke Index)
+          if (course.strokeIndex && Array.isArray(course.strokeIndex)) {
+            const si = parseInt(course.strokeIndex[holeIndex], 10);
+            if (Number.isFinite(si) && si > 0) defaultIndex = si;
+          }
+
       }
 
       const holesPlayed = appState.activeRound.holes.length;
 
+      const shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, defaultIndex);
+
       container.innerHTML = `
         <h1 class="page-title">Hole ${appState.currentHole}</h1>
 
-        ${renderScoreSummaryBox(appState.activeRound, '현재 라운드')}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5vh;">
+          <div class="hole-info-card" style="margin-bottom: 0;">
+            <div class="hole-info-header">
+              <div class="hole-info-main">
+                Par ${defaultPar} • ${defaultDistance}m
+              </div>
+              <div class="hole-info-tee ${appState.selectedTeeBox}">
+                ${appState.selectedTeeBox === 'blue' ? '🔵 Blue' : '⚪ White'}
+              </div>
+            </div>
+            <div class="hole-info-details">
+              ${defaultIndex ? `<div class="hole-info-item index">📊 Index ${defaultIndex}</div>` : ''}
+              ${defaultIndex ? `<div class="hole-info-item shot">⛳ Shot +${shotsReceived}</div>` : ''}
+            </div>
+          </div>
+
+          <div>
+            ${renderScoreSummaryBox(appState.activeRound, '현재 라운드')}
+          </div>
+        </div>
 
         ${holesPlayed > 0 ? `
           <div class="round-control-panel">
@@ -2256,22 +2457,8 @@ const holeIndex = appState.currentHole - 1;
           </div>
         ` : ''}
         
-        <div class="section grow">
-          <h2 class="section-title">홀 정보</h2>
-          
-          ${isNewCourse ? `
-            <div class="info-box">
-              💡 라운드하면서 코스 정보를 입력하세요.
-            </div>
-          ` : `
-            <div class="info-box">
-              ${defaultPar && defaultDistance ? 
-                `✓ Par ${defaultPar} • ${defaultDistance}m` : 
-                '💡 홀 정보를 입력하세요.'
-              }
-            </div>
-          `}
-<button class="primary-btn" onclick="confirmParAndDistance()">
+        <div class="section grow" style="display: flex; align-items: flex-end;">
+          <button class="primary-btn" onclick="confirmParAndDistance()">
             샷 입력 시작
           </button>
         </div>
@@ -2364,6 +2551,12 @@ const holeIndex = appState.currentHole - 1;
       const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
       const isShortGame = shot.type === 'short';
       
+      // Hole Index / Shot +N (handicap allowance)
+      const __courseForIndex = getCourseById(appState.activeRound?.courseId);
+      const __holeIdx = (appState.currentHole || 1) - 1;
+      const __strokeIndex = getHoleStrokeIndex(__courseForIndex, __holeIdx);
+      const __shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, __strokeIndex);
+
       // Par 3는 거리 필요, Par 4/5 티샷은 거리 불필요
       const needsDistance = (isTeeShot && isPar3) || !isTeeShot;
       
@@ -2377,18 +2570,35 @@ const holeIndex = appState.currentHole - 1;
       const showMissPattern = isTeeShot && shot.result.landing && shot.result.landing !== 'fairway';
 
       container.innerHTML = `
-        <div class="shot-header">
-          <div class="shot-info">
-            <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
-            <span class="tee-badge ${appState.selectedTeeBox}">
-              ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
-            </span>
-            ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
+        <div class="shot-header-unified">
+          <div class="shot-header-row-1">
+            <div class="shot-header-left">
+              <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
+              <span class="tee-badge ${appState.selectedTeeBox}">
+                ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
+              </span>
+              ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
+            </div>
+            <div class="shot-header-right">
+              <span class="score-item">Gross <b>${calcRoundScores(appState.activeRound).gross}</b></span>
+            </div>
           </div>
-          <div class="shot-number">샷 #${shot.number}${isTeeShot ? ' - 티샷' : isShortGame ? ' - 숏게임' : ' - 어프로치'}</div>
+          <div class="shot-header-row-2">
+            <div class="shot-header-left">
+              <span class="shot-number">샷 #${shot.number}${isTeeShot ? ' - 티샷' : isShortGame ? ' - 숏게임' : ' - 어프로치'}</span>
+              ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
+              ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
+            </div>
+            <div class="shot-header-right">
+              <span class="score-item">Nett <b>${(() => {
+                const s = calcRoundScores(appState.activeRound);
+                const nettToPar = s.nett - s.totalPar;
+                return nettToPar === 0 ? 'E' : (nettToPar > 0 ? '+' + nettToPar : nettToPar);
+              })()}</b></span>
+              <span class="score-item">Stableford <b>${calcRoundScores(appState.activeRound).stableford} pts</b></span>
+            </div>
+          </div>
         </div>
-
-        ${renderScoreSummaryBox(appState.activeRound, '현재 라운드')}
 
         ${appState.shots.length > 0 ? `
           <div class="previous-shots">
@@ -2720,6 +2930,11 @@ const holeIndex = appState.currentHole - 1;
     function renderPuttingInput(container) {
       const putting = appState.puttingData;
 
+      const __courseForIndex = getCourseById(appState.activeRound?.courseId);
+      const __holeIdx = (appState.currentHole || 1) - 1;
+      const __strokeIndex = getHoleStrokeIndex(__courseForIndex, __holeIdx);
+      const __shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, __strokeIndex);
+
       container.innerHTML = `
         <div class="shot-header">
           <div class="shot-info">
@@ -2727,6 +2942,8 @@ const holeIndex = appState.currentHole - 1;
             <span class="tee-badge ${appState.selectedTeeBox}">
               ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
             </span>
+            ${__strokeIndex ? `<span class="index-badge">📊 Index ${__strokeIndex}</span>` : ''}
+            ${__strokeIndex ? `<span class="shot-allowance-badge">⛳ Shot +${__shotsReceived}</span>` : ''}
           </div>
           <div class="shot-number">⛳ 퍼팅</div>
         </div>
@@ -2819,6 +3036,32 @@ const holeIndex = appState.currentHole - 1;
       return appState.data.courses.find(c => c.id === courseId) || null;
     }
 
+    // ========================================
+    // HOLE INDEX / HANDICAP SHOTS (+1/+2/+3)
+    // ========================================
+    function getHoleStrokeIndex(course, holeIndex) {
+      if (!course || !Array.isArray(course.strokeIndex)) return null;
+      const v = course.strokeIndex[holeIndex];
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+
+    // 플레이어 핸디캡(Playing HCP)과 Hole Index를 적용하여 해당 홀에서 받는 샷(+N) 계산
+    // 표준 배분 규칙: 18홀 기준으로 HCP/18 만큼 모든 홀에 기본 지급 + 나머지(rem)만큼 Index 상위 홀에 추가 지급
+    function getShotsReceivedForHole(playerHandicap, strokeIndex) {
+      const h = parseInt(playerHandicap, 10);
+      const si = parseInt(strokeIndex, 10);
+      if (!Number.isFinite(h) || h <= 0) return 0;
+      if (!Number.isFinite(si) || si <= 0) return 0;
+
+      const idxEff = ((si - 1) % 18) + 1;  // Index 19~도 1~18로 환산하여 안전 처리
+      const base = Math.floor(h / 18);
+      const rem = h % 18;
+
+      return base + (idxEff <= rem ? 1 : 0);
+    }
+
+
     function _toIntOrNull(v) {
       const n = parseInt(v, 10);
       return Number.isFinite(n) ? n : null;
@@ -2894,15 +3137,26 @@ const holeIndex = appState.currentHole - 1;
     function renderScoreSummaryBox(round, title) {
       const s = calcRoundScores(round);
       const holesLabel = round?.holes?.length ? `${s.holesPlayed}/${getCourseById(round.courseId)?.holes || 18}홀` : `0/${getCourseById(round?.courseId)?.holes || 18}홀`;
+      
+      // Nett 스코어를 Par 대비 +/- 형식으로 계산
+      const nettToPar = s.nett - s.totalPar;
+      let nettDisplay;
+      if (nettToPar === 0) {
+        nettDisplay = 'E';
+      } else if (nettToPar > 0) {
+        nettDisplay = '+' + nettToPar;
+      } else {
+        nettDisplay = String(nettToPar); // 음수는 그대로 표시
+      }
 
       return `
-        <div class="par-summary" style="margin-top: 10px;">
-          <div class="par-summary-row" style="font-weight:700; color: var(--green-primary);">
+        <div class="par-summary" style="margin-top: 0; height: 100%;">
+          <div class="par-summary-row" style="font-weight:700; color: var(--green-primary); margin-bottom: 8px;">
             <span>${title || 'Score'}</span>
             <span style="opacity:0.8;">${holesLabel}</span>
           </div>
           <div class="par-summary-row"><span>Gross</span><span><b>${s.gross}</b></span></div>
-          <div class="par-summary-row"><span>Nett</span><span><b>${s.nett}</b></span></div>
+          <div class="par-summary-row"><span>Nett</span><span><b>${nettDisplay}</b></span></div>
           <div class="par-summary-row"><span>Stableford</span><span><b>${s.stableford} pts</b></span></div>
         </div>
       `;
@@ -3111,16 +3365,6 @@ const holeIndex = appState.currentHole - 1;
       return (url || '').trim().replace(/\/+$/, '');
     }
 
-    function getScorecardServerDisplay() {
-      return FIXED_SCORECARD_PROXY + ' (고정)';
-    }
-
-    window.viewScorecardServer = function() {
-      alert('현재 스코어카드 서버 주소:\n' + getScorecardServerDisplay());
-    };
-
-    
-
 
     // ========================================
     // SETTINGS PAGE
@@ -3155,16 +3399,28 @@ const holeIndex = appState.currentHole - 1;
         <div class="section">
           <h2 class="section-title">스코어카드 분석 서버</h2>
           <p style="margin-bottom: 12px; opacity: 0.8;">
-            현재 서버: <b>${getScorecardServerDisplay()}</b>
+            스코어카드 이미지를 AI로 분석하여 코스 정보를 자동으로 등록합니다.
           </p>
 
+          <label class="input-label">서버 주소</label>
+          <input 
+            type="text" 
+            class="text-input" 
+            id="scorecardServerInput"
+            placeholder="예: https://your-server.onrender.com"
+            value="${getScorecardProxyBaseUrl()}"
+            style="margin-bottom: 12px;"
+          />
+
           <div class="button-group">
-            <button class="secondary-btn" onclick="viewScorecardServer()">서버 주소 보기</button>
+            <button class="secondary-btn" onclick="saveScorecardServer()">💾 서버 주소 저장</button>
+            <button class="secondary-btn" onclick="resetScorecardServer()">🔄 기본값으로 초기화</button>
           </div>
 
           <p style="opacity: 0.55; font-size: 12px; margin-top: 10px; line-height: 1.4;">
-            • 이 서버는 Render에 배포된 공식 프록시이며 변경할 수 없습니다.<br>
-            • GitHub Pages 전용으로 최적화되어 있습니다.
+            • 기본 서버: ${FIXED_SCORECARD_PROXY}<br>
+            • 자체 서버가 있다면 주소를 변경할 수 있습니다.<br>
+            • 서버는 POST /api/scorecard 엔드포인트를 지원해야 합니다.
           </p>
         </div>
 
@@ -3220,10 +3476,11 @@ const holeIndex = appState.currentHole - 1;
 
         <div class="section" style="text-align: center;">
           <h3 style="margin-bottom: 8px;">Golf Round Analyzer</h3>
-          <p style="opacity: 0.6;">Version 9.2.0</p>
-          <p style="opacity: 0.6;">테스트2 피드백 반영</p>
+          <p style="opacity: 0.6;">Version 9.3.0</p>
+          <p style="opacity: 0.6;">스코어카드 AI 분석 기능</p>
           <p style="opacity: 0.6; font-size: 12px; margin-top: 8px;">
-            Par 입력 로직 개선 • 샷 필드 초기화 수정
+            📄 스코어카드 이미지 업로드로 코스 자동 등록<br>
+            ⚙️ 분석 서버 주소 설정 가능
           </p>
         </div>
       `;
@@ -3289,10 +3546,45 @@ const holeIndex = appState.currentHole - 1;
     }
 
     function getScorecardProxyBaseUrl() {
-      // 🔒 고정된 공식 서버 사용 (변경 불가)
-      localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, FIXED_SCORECARD_PROXY);
+      // localStorage에서 사용자 설정 서버 주소 가져오기
+      const saved = localStorage.getItem(SCORECARD_PROXY_STORAGE_KEY);
+      if (saved && saved.trim()) {
+        return normalizeBaseUrl(saved);
+      }
+      // 없으면 기본 서버 사용
       return FIXED_SCORECARD_PROXY;
     }
+
+    window.saveScorecardServer = function() {
+      const input = document.getElementById('scorecardServerInput');
+      if (!input) return;
+      
+      const url = normalizeBaseUrl(input.value);
+      if (!url) {
+        alert('서버 주소를 입력해주세요.');
+        return;
+      }
+      
+      // URL 유효성 검사
+      try {
+        new URL(url);
+      } catch (e) {
+        alert('올바른 URL 형식이 아닙니다.\n예: https://your-server.onrender.com');
+        return;
+      }
+      
+      localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, url);
+      alert('✅ 서버 주소가 저장되었습니다:\n' + url);
+      render();
+    };
+
+    window.resetScorecardServer = function() {
+      if (confirm('기본 서버 주소로 초기화하시겠습니까?')) {
+        localStorage.setItem(SCORECARD_PROXY_STORAGE_KEY, FIXED_SCORECARD_PROXY);
+        alert('✅ 기본 서버로 초기화되었습니다:\n' + FIXED_SCORECARD_PROXY);
+        render();
+      }
+    };
 
     // 필요 시 주소를 다시 입력하도록 초기화
     
@@ -3568,6 +3860,12 @@ function fillCourseFromAI(data) {
     }
   };
   appState.showCourseModal = true;
+  
+  // 사용자에게 확인 안내
+  setTimeout(() => {
+    alert('✅ 스코어카드 분석 완료!\n\n코스 정보를 확인하고 필요시 수정한 후 저장하세요.');
+  }, 100);
+  
   render();
 }
 
@@ -3588,15 +3886,6 @@ function fillCourseFromAI(data) {
 
 
     // ========================================
-    // INIT
-    // ========================================
-    loadData();
-    render();
-  
-  
-
-
-    // ========================================
     // BOOT
     // ========================================
     window.addEventListener('DOMContentLoaded', () => {
@@ -3607,7 +3896,6 @@ function fillCourseFromAI(data) {
 </script>
 </body>
 </html>
-<!-- test -->
 
 
 
