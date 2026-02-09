@@ -994,7 +994,8 @@
       currentHole: 1,
       selectedTeeBox: 'blue',
       pendingHandicap: '',
-      holePar: null,
+            pendingStartHole: 1,
+holePar: null,
       holeDistance: '',
       shots: [],
       currentShot: null,
@@ -1005,18 +1006,75 @@
       editingCourse: null,
     };
     // ========================================
-    // SAFETY: log errors only (no crash screen)
+    // SAFETY: non-blocking error handling (prevents blank screen)
     // ========================================
+
+    function _ensureErrorBanner() {
+      let banner = document.getElementById('error-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'error-banner';
+        banner.style.cssText = [
+          'position:fixed',
+          'top:10px',
+          'left:50%',
+          'transform:translateX(-50%)',
+          'z-index:99999',
+          'max-width:92vw',
+          'background:#111827',
+          'color:#fff',
+          'padding:10px 12px',
+          'border-radius:12px',
+          'box-shadow:0 10px 25px rgba(0,0,0,0.25)',
+          'font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial',
+          'font-size:13px',
+          'line-height:1.35',
+          'display:none'
+        ].join(';');
+        banner.innerHTML = `
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="font-size:16px; line-height:1;">⚠️</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; margin-bottom:2px;">오류가 발생했습니다</div>
+              <div id="error-banner-msg" style="opacity:0.9;"></div>
+              <div style="margin-top:6px; opacity:0.75;">콘솔(F12)에서 상세 로그를 확인할 수 있습니다.</div>
+            </div>
+            <button id="error-banner-close" style="border:0; background:transparent; color:#fff; cursor:pointer; font-size:16px; line-height:1;">×</button>
+          </div>
+        `;
+        document.body.appendChild(banner);
+        const closeBtn = banner.querySelector('#error-banner-close');
+        if (closeBtn) closeBtn.onclick = () => { banner.style.display = 'none'; };
+      }
+      return banner;
+    }
+
+    function showErrorBanner(message) {
+      try {
+        const banner = _ensureErrorBanner();
+        const msg = banner.querySelector('#error-banner-msg');
+        if (msg) msg.textContent = String(message || '알 수 없는 오류');
+        banner.style.display = 'block';
+        clearTimeout(banner.__t);
+        banner.__t = setTimeout(() => { banner.style.display = 'none'; }, 8000);
+      } catch (e) {
+        console.error('Failed to show error banner:', e);
+      }
+    }
+
     window.addEventListener('error', (e) => {
       console.error('Runtime error:', e.error || e.message);
+      showErrorBanner(e.error?.message || e.message || 'Runtime error');
       // 화면을 덮어쓰지 않음 (진행 가능)
     });
 
     window.addEventListener('unhandledrejection', (e) => {
       console.error('Unhandled rejection:', e.reason);
+      showErrorBanner(e.reason?.message || String(e.reason || 'Unhandled rejection'));
       // 화면을 덮어쓰지 않음 (진행 가능)
     });
-// ========================================
+
+    // ========================================
     // LOCAL STORAGE
     // ========================================
     function saveData() {
@@ -1248,6 +1306,31 @@ case 4: renderSettingsPage(container); break;
       }
     }
 
+
+    // ========================================
+    // SAFETY: render wrapper to avoid blank screen on runtime errors
+    // ========================================
+    const __safeRender = render;
+    render = function() {
+      let __prev = '';
+      try {
+        const app = document.getElementById('app');
+        if (!app) {
+          console.error('No #app container found.');
+          return;
+        }
+        __prev = app.innerHTML || '';
+        __safeRender();
+      } catch (e) {
+        console.error('Render failed:', e);
+        const app = document.getElementById('app');
+        if (app) {
+          if (__prev && __prev.trim()) app.innerHTML = __prev;
+          showErrorBanner('렌더링 오류: 화면을 복구했습니다.');
+        }
+      }
+    };
+
     // ========================================
     // BACK BUTTON
     // ========================================
@@ -1266,10 +1349,37 @@ case 4: renderSettingsPage(container); break;
           appState.currentShot = null;
           appState.holePar = null;
         }
-      } else if (appState.holePar) {
-        // Par 입력 -> 라운드 취소 확인
-        if (confirm('라운드를 취소하시겠습니까?')) {
+      } else {
+        // 홀 정보(샷 시작 전) 화면에서 뒤로가기:
+        // 첫 홀(아직 샷/홀 기록이 없는 상태)에서는 티박스 선택으로 돌아갑니다.
+        const isBeforeFirstShot =
+          !!appState.activeRound &&
+          Array.isArray(appState.activeRound.holes) &&
+          appState.activeRound.holes.length === 0 &&
+          appState.shots.length === 0 &&
+          !appState.currentShot &&
+          !appState.puttingData;
+
+        if (isBeforeFirstShot) {
+          const r = appState.activeRound;
+
+          // 티박스 선택 화면에서 값이 유지되도록 복원
+          appState.selectedCourseId = r.courseId;
+          appState.selectedTeeBox = r.teeBox;
+          appState.pendingHandicap = (r.handicap ?? '').toString();
+          appState.pendingStartHole = (r.startHole === 10 ? 10 : 1);
+
           cancelRound();
+          appState.currentPage = 12; // 티박스 선택으로
+          render();
+          return;
+        }
+
+        // 그 외에는 기존처럼 라운드 취소 확인
+        if (appState.holePar) {
+          if (confirm('라운드를 취소하시겠습니까?')) {
+            cancelRound();
+          }
         }
       }
       render();
@@ -1488,6 +1598,20 @@ window.goToPage = function(page) {
 
         <div class="section">
           <h2 class="section-title">${course.name}</h2>
+          ${(course.holes === 18) ? `
+            <div class="section" style="margin-top: 10px;">
+              <h3 class="section-title" style="font-size: 15px; margin-bottom: 10px;">시작 홀</h3>
+              <div class="button-group">
+                <button class="choice-btn ${appState.pendingStartHole === 1 ? 'selected' : ''}"
+                  onclick="setPendingStartHole(1)">1번</button>
+                <button class="choice-btn ${appState.pendingStartHole === 10 ? 'selected' : ''}"
+                  onclick="setPendingStartHole(10)">10번</button>
+              </div>
+              <div style="margin-top: 8px; font-size: 12px; opacity: 0.75;">
+                * 10번 시작 시 10→18→1→9 순환으로 진행됩니다.
+              </div>
+            </div>
+          ` : ``}
 
           <div style="margin: 12px 0 16px;">
             <label class="input-label">핸디캡 (Playing Handicap)</label>
@@ -1543,6 +1667,33 @@ window.goToPage = function(page) {
       appState.pendingHandicap = value;
     };
 
+    // ========================================
+    // START HOLE (1 or 10) + CYCLIC HOLE ORDER
+    // ========================================
+    function buildHoleOrder(holesCount, startHole) {
+      const H = parseInt(holesCount, 10) || 18;
+      let s = parseInt(startHole, 10) || 1;
+
+      // 9홀 코스는 1~9로 고정
+      if (H === 9) {
+        return Array.from({ length: 9 }, (_, i) => i + 1);
+      }
+
+      // 18홀: 기본은 1/10만 허용
+      if (s !== 1 && s !== 10) s = 1;
+
+      const order = [];
+      for (let i = s; i <= H; i++) order.push(i);
+      for (let i = 1; i < s; i++) order.push(i);
+      return order; // start=10 => 10..18,1..9
+    }
+
+    window.setPendingStartHole = function(v) {
+      appState.pendingStartHole = parseInt(v, 10) || 1;
+      render();
+    };
+
+
     window.selectTeeBox = function(teeBox) {
       // ✅ 티박스는 '선택만' 저장 (라운드 시작/홀 이동은 하지 않음)
       appState.selectedTeeBox = teeBox;
@@ -1551,7 +1702,9 @@ window.goToPage = function(page) {
 
     window.startRoundFromTeeboxSelection = function() {
       const course = appState.data.courses.find(c => c.id === appState.selectedCourseId);
-      if (!course) {
+      
+      const holeOrder = buildHoleOrder(course.holes || 18, appState.pendingStartHole);
+if (!course) {
         alert('코스를 찾을 수 없습니다. 다시 시도해주세요.');
         return;
       }
@@ -1579,13 +1732,15 @@ window.goToPage = function(page) {
         courseId: course.id,
         course: course.name,
         teeBox: appState.selectedTeeBox,
+        startHole: holeOrder[0],
+        holeOrder: holeOrder,
         handicap: handicap,
         date: new Date().toISOString(),
         holes: [],
         status: 'in-progress'
       };
 
-      appState.currentHole = 1;
+      appState.currentHole = holeOrder[0];
       render();
     };
 
@@ -2116,27 +2271,7 @@ const holeIndex = appState.currentHole - 1;
               }
             </div>
           `}
-
-          <div class="input-section">
-            <label>Par</label>
-            <div class="button-group-3">
-              <button class="choice-btn ${appState.holePar === 3 || (!appState.holePar && defaultPar === 3) ? 'selected' : ''}" 
-                onclick="setTempPar(3, event)">Par 3</button>
-              <button class="choice-btn ${appState.holePar === 4 || (!appState.holePar && defaultPar === 4) ? 'selected' : ''}" 
-                onclick="setTempPar(4, event)">Par 4</button>
-              <button class="choice-btn ${appState.holePar === 5 || (!appState.holePar && defaultPar === 5) ? 'selected' : ''}" 
-                onclick="setTempPar(5, event)">Par 5</button>
-            </div>
-          </div>
-
-          <div class="input-section">
-            <label>거리 (미터) ${isNewCourse ? '' : '<span class="optional-label">(직접 입력 가능)</span>'}</label>
-            <input type="number" class="text-input" id="hole-distance-input"
-              value="${appState.holeDistance || defaultDistance}" 
-              placeholder="예: 350">
-          </div>
-
-          <button class="primary-btn" onclick="confirmParAndDistance()">
+<button class="primary-btn" onclick="confirmParAndDistance()">
             샷 입력 시작
           </button>
         </div>
@@ -2154,11 +2289,26 @@ const holeIndex = appState.currentHole - 1;
     };
 
     window.confirmParAndDistance = function() {
-      const distanceInput = document.getElementById('hole-distance-input');
-      const distance = distanceInput ? distanceInput.value : '';
-      
-      if (!appState.holePar) appState.holePar = 4;
-      appState.holeDistance = distance;
+      // ✅ Par/거리 수동 입력 기능 삭제: 코스 데이터에서 자동 적용
+      try {
+        const course = appState.data.courses.find(c => c.id === appState.activeRound?.courseId);
+        const holeIndex = (appState.currentHole || 1) - 1;
+
+        if (course && Array.isArray(course.par) && course.par[holeIndex]) {
+          appState.holePar = course.par[holeIndex];
+        }
+        const tee = appState.selectedTeeBox || 'blue';
+        if (course && course.distances && Array.isArray(course.distances[tee])) {
+          const d = course.distances[tee][holeIndex];
+          if (d !== undefined && d !== null && d !== '') appState.holeDistance = d;
+        }
+
+        // fallback (예외 상황)
+        if (!appState.holePar) appState.holePar = 4;
+      } catch (e) {
+        console.error('confirmParAndDistance auto-apply failed:', e);
+        if (!appState.holePar) appState.holePar = 4;
+      }
 
       // 샷 입력 시작
       startTeeShot();
@@ -2630,15 +2780,28 @@ const holeIndex = appState.currentHole - 1;
       appState.activeRound.holes.push(holeData);
       saveData();
 
-      // 18홀 완료 체크
-      if (appState.activeRound.holes.length >= 18) {
+      
+
+
+      // 코스 기준 총 홀 수 (9/18)
+      const course = getCourseById(appState.activeRound.courseId);
+      const totalHoles = (appState.activeRound.holeOrder && appState.activeRound.holeOrder.length)
+        ? appState.activeRound.holeOrder.length
+        : (course?.holes || 18);
+
+      // 완료 체크 (총 홀 수만큼 기록되면 종료)
+      if (appState.activeRound.holes.length >= totalHoles) {
         finishRound();
         return;
       }
 
-      // 다음 홀로
-      appState.currentHole++;
-      appState.holePar = null;
+      // 다음 홀로 (순환 지원: holeOrder 사용)
+      const holesPlayed = appState.activeRound.holes.length;
+      if (appState.activeRound.holeOrder && appState.activeRound.holeOrder[holesPlayed]) {
+        appState.currentHole = appState.activeRound.holeOrder[holesPlayed];
+      } else {
+        appState.currentHole++;
+      }appState.holePar = null;
       appState.holeDistance = '';
       appState.shots = [];
       appState.currentShot = null;
@@ -3430,7 +3593,18 @@ function fillCourseFromAI(data) {
     loadData();
     render();
   
-  </script>
+  
+
+
+    // ========================================
+    // BOOT
+    // ========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      try { loadData(); } catch (e) { console.error('Initial loadData failed:', e); }
+      try { render(); } catch (e) { console.error('Initial render failed:', e); }
+    });
+
+</script>
 </body>
 </html>
 <!-- test -->
