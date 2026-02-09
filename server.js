@@ -1,6 +1,8 @@
 // Golf Scorecard Analyzer - Proxy Server (FIXED for new Gemini models)
 // Updated model: gemini-2.0-flash
 
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
