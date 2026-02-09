@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Golf Scorecard Analyzer Server',
-    version: '1.0.1'
+    version: '1.0.2'
   });
 });
 
@@ -68,8 +68,8 @@ Important:
 - Return ONLY valid JSON, no markdown formatting, no backticks
 - If any data is unclear, make reasonable estimates based on typical golf course layouts`;
 
-    // Call Gemini API with updated model name
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    // Call Gemini API with gemini-pro-vision model
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
     const result = await model.generateContent([prompt, ...imageParts]);
     const response = await result.response;
     const text = response.text();
