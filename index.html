@@ -158,7 +158,8 @@
     }
 
     .shot-header-row-1,
-    .shot-header-row-2 {
+    .shot-header-row-2,
+    .shot-header-row-3 {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -169,6 +170,16 @@
       margin-bottom: 10px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--sand);
+    }
+
+    .shot-header-row-2 {
+      margin-bottom: 8px;
+    }
+
+    .shot-header-row-3 {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #f5f5f5;
     }
 
     .shot-header-left {
@@ -200,7 +211,8 @@
     }
 
     .index-badge-inline,
-    .shot-allowance-badge-inline {
+    .shot-allowance-badge-inline,
+    .score-badge-inline {
       padding: 2px 8px;
       border-radius: 10px;
       font-size: 11px;
@@ -217,6 +229,21 @@
       color: var(--brown);
     }
 
+    .score-badge-inline.gross {
+      background: #e8f4f8;
+      color: #2c5f7a;
+    }
+
+    .score-badge-inline.nett {
+      background: #f0e8f4;
+      color: #6b4c7a;
+    }
+
+    .score-badge-inline.stb {
+      background: #fef3e8;
+      color: #b8730d;
+    }
+
     .shot-info {
       display: flex;
       gap: 8px;
@@ -225,7 +252,7 @@
     }
 
     .hole-num {
-      font-size: clamp(16px, 2.5vh, 18px);
+      font-size: clamp(18px, 3vh, 20px);
       font-weight: 700;
       color: var(--green-primary);
     }
@@ -246,7 +273,7 @@
     .distance-badge {
       padding: 3px 10px;
       border-radius: 12px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       background: var(--sand);
       color: var(--brown);
@@ -2813,9 +2840,6 @@ const holeIndex = appState.currentHole - 1;
             <div class="shot-header-left">
               <div class="back-button" onclick="goBackFromShot()">←</div>
               <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
-              <span class="tee-badge ${appState.selectedTeeBox}">
-                ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
-              </span>
               ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
             </div>
           </div>
@@ -2825,13 +2849,16 @@ const holeIndex = appState.currentHole - 1;
               ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
               ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
             </div>
-            <div class="shot-header-right">
-              <span class="score-item">Nett <b>${(() => {
+          </div>
+          <div class="shot-header-row-3">
+            <div class="shot-header-left">
+              <span class="score-badge-inline gross">Gross ${calcRoundScores(appState.activeRound).gross}</span>
+              <span class="score-badge-inline nett">Nett ${(() => {
                 const s = calcRoundScores(appState.activeRound);
                 const nettToPar = s.nett - s.totalPar;
                 return nettToPar === 0 ? 'E' : (nettToPar > 0 ? '+' + nettToPar : nettToPar);
-              })()}</b></span>
-              <span class="score-item">Stableford <b>${calcRoundScores(appState.activeRound).stableford} pts</b></span>
+              })()}</span>
+              <span class="score-badge-inline stb">STB ${calcRoundScores(appState.activeRound).stableford}</span>
             </div>
           </div>
         </div>
@@ -3273,9 +3300,6 @@ const holeIndex = appState.currentHole - 1;
             <div class="shot-header-left">
               <div class="back-button" onclick="goBackFromPutting()">←</div>
               <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
-              <span class="tee-badge ${appState.selectedTeeBox}">
-                ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
-              </span>
               ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
             </div>
           </div>
@@ -3285,13 +3309,16 @@ const holeIndex = appState.currentHole - 1;
               ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
               ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
             </div>
-            <div class="shot-header-right">
-              <span class="score-item">Nett <b>${(() => {
+          </div>
+          <div class="shot-header-row-3">
+            <div class="shot-header-left">
+              <span class="score-badge-inline gross">Gross ${calcRoundScores(appState.activeRound).gross}</span>
+              <span class="score-badge-inline nett">Nett ${(() => {
                 const s = calcRoundScores(appState.activeRound);
                 const nettToPar = s.nett - s.totalPar;
                 return nettToPar === 0 ? 'E' : (nettToPar > 0 ? '+' + nettToPar : nettToPar);
-              })()}</b></span>
-              <span class="score-item">Stableford <b>${calcRoundScores(appState.activeRound).stableford} pts</b></span>
+              })()}</span>
+              <span class="score-badge-inline stb">STB ${calcRoundScores(appState.activeRound).stableford}</span>
             </div>
           </div>
         </div>
