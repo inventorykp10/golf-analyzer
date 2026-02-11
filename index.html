@@ -188,13 +188,13 @@
     }
 
     .score-item {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--brown);
       white-space: nowrap;
     }
 
     .score-item b {
-      font-size: 15px;
+      font-size: 16px;
       color: var(--green-primary);
       margin-left: 4px;
     }
@@ -225,15 +225,15 @@
     }
 
     .hole-num {
-      font-size: clamp(14px, 2vh, 16px);
-      font-weight: 600;
+      font-size: clamp(16px, 2.5vh, 18px);
+      font-weight: 700;
       color: var(--green-primary);
     }
 
     .tee-badge {
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 13px;
       font-weight: 600;
       background: var(--blue);
       color: white;
@@ -244,9 +244,10 @@
     }
 
     .distance-badge {
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
       background: var(--sand);
       color: var(--brown);
     }
@@ -277,7 +278,7 @@
     }
 
     .shot-number {
-      font-size: clamp(15px, 2vh, 18px);
+      font-size: clamp(16px, 2.5vh, 19px);
       font-weight: 700;
       color: var(--green-primary);
       margin-top: 2px;
@@ -2817,9 +2818,6 @@ const holeIndex = appState.currentHole - 1;
               </span>
               ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
             </div>
-            <div class="shot-header-right">
-              <span class="score-item">Gross <b>${calcRoundScores(appState.activeRound).gross}</b></span>
-            </div>
           </div>
           <div class="shot-header-row-2">
             <div class="shot-header-left">
@@ -3025,14 +3023,27 @@ const holeIndex = appState.currentHole - 1;
     // ========================================
     function preserveScrollAndRender() {
       const scrollPos = window.scrollY || window.pageYOffset;
+      
+      // render 호출
       render();
-      // render 완료 후 스크롤 복원 (이중 보장)
+      
+      // 즉시 복원 시도
+      window.scrollTo(0, scrollPos);
+      
+      // requestAnimationFrame으로 한 번 더
       requestAnimationFrame(() => {
         window.scrollTo(0, scrollPos);
-        setTimeout(() => {
-          window.scrollTo(0, scrollPos);
-        }, 0);
       });
+      
+      // 짧은 딜레이 후 한 번 더 (확실하게)
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+      }, 10);
+      
+      // 한 번 더 (매우 확실하게)
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+      }, 50);
     }
 
     // ========================================
@@ -3266,9 +3277,6 @@ const holeIndex = appState.currentHole - 1;
                 ${appState.selectedTeeBox === 'blue' ? 'Blue' : 'White'}
               </span>
               ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
-            </div>
-            <div class="shot-header-right">
-              <span class="score-item">Gross <b>${calcRoundScores(appState.activeRound).gross}</b></span>
             </div>
           </div>
           <div class="shot-header-row-2">
