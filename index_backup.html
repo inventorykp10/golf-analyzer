@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#2d5016">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192x192.png">
-  <title>Golf Round Analyzer ⛳ v10</title>
+  <title>Golf Round Analyzer ⛳ v9</title>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap');
@@ -98,9 +98,7 @@
       font-weight: 700;
       color: var(--green-primary);
       margin-bottom: 1.5vh;
-      font-family: system-ui, -apple-system, 
-                   "Noto Sans KR", "Malgun Gothic", 
-                   "Segoe UI", Arial, sans-serif;
+      font-family: 'Bebas Neue', cursive;
       letter-spacing: 1px;
       text-align: center;
       flex-shrink: 0;
@@ -272,8 +270,7 @@
     .shot-header, .shot-header * {
       font-family: 'Noto Sans KR', sans-serif;
     }
-
-    .shot-number {
+.shot-number {
       font-size: clamp(15px, 2vh, 18px);
       font-weight: 700;
       color: var(--green-primary);
@@ -742,8 +739,6 @@
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      position: relative;
-      z-index: 10;
     }
 
     /* ========== COURSE REGISTRATION (modal) ========== */
@@ -1046,15 +1041,7 @@
   color:#21440f;
   margin:4px 0 18px;
 }
-.scorecard-box-help{
-  text-align:center;
-  font-size:13px;
-  font-weight:600;
-  opacity:0.75;
-  line-height:1.45;
-  margin:-10px 0 14px; /* 제목과 버튼 사이 간격 */
-}
-  .scorecard-btn-row{
+.scorecard-btn-row{
   display:flex;
   gap:14px;
 }
@@ -1082,28 +1069,6 @@
   .roundstart-inner{ padding:22px 18px 24px; }
   .scorecard-box-title{ font-size:20px; }
   .scorecard-btn{ height:60px; font-size:17px; }
-}
-
-.help-list{
-  list-style: none;      /* 기본 불릿 제거 */
-  padding-left: 0;
-  margin: 8px 0 0;
-  text-align: left;      /* 전체 왼쪽 정렬 */
-}
-
-.help-list li{
-  position: relative;
-  padding-left: 22px;    /* ※ 자리 확보 */
-  margin-bottom: 8px;
-  line-height: 1.45;
-  text-align: left;      /* 줄바꿈 후에도 왼쪽 기준 */
-}
-
-.help-list li::before{
-  content: "※";
-  position: absolute;
-  left: 0;
-  top: 0;
 }
 
 </style>
@@ -1134,13 +1099,10 @@
         name: 'Woodville GC',
         location: 'Woodville',
         holes: 18,
-        par: [4, 3, 5, 4, 3, 5, 3, 4, 4, 4, 3, 4, 5, 5, 3, 4, 4, 5],
-
-        strokeIndex: [2, 18, 12, 13, 7, 15, 10, 11, 9, 1, 8, 4, 16, 6, 14, 3, 5, 17],
-
+        par: [4, 4, 3, 4, 5, 4, 3, 4, 4, 4, 4, 3, 5, 4, 4, 3, 4, 4],
         distances: {
-          blue: [379, 127, 457, 296, 165, 460, 122, 305, 322, 367, 166, 338, 423, 468, 133, 374, 333, 401],
-          white: [363, 114, 422, 268, 140, 440, 105, 294, 305, 340, 140, 321, 404, 450, 113, 358, 310, 385]
+          blue: [365, 348, 165, 375, 478, 355, 152, 368, 385, 342, 358, 158, 485, 368, 355, 148, 348, 375],
+          white: [350, 335, 155, 360, 465, 340, 142, 355, 370, 330, 345, 148, 470, 355, 340, 138, 335, 360]
         }
       }
     ];
@@ -1171,58 +1133,13 @@
     // 학습된 거리 데이터 (라운드 기록에서 자동 계산)
     let CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
 
-    // 사용자가 직접 설정한 거리 (localStorage에 저장)
-    const CUSTOM_CLUB_DISTANCES_KEY = 'golf_analyzer_custom_club_distances';
-
-    function saveCustomClubDistances(customData) {
-      try {
-        localStorage.setItem(CUSTOM_CLUB_DISTANCES_KEY, JSON.stringify(customData));
-      } catch (e) {
-        console.error('클럽 거리 저장 실패:', e);
-      }
-    }
-
-    function loadCustomClubDistances() {
-      try {
-        const saved = localStorage.getItem(CUSTOM_CLUB_DISTANCES_KEY);
-        return saved ? JSON.parse(saved) : null;
-      } catch (e) {
-        console.error('클럽 거리 로드 실패:', e);
-        return null;
-      }
-    }
-
-    // 클럽 거리 결정 우선순위: 사용자 수동 설정 > 학습 데이터 > 기본값
-    function applyClubDistances() {
-      const custom = loadCustomClubDistances();
-      if (custom) {
-        // 사용자 커스텀 값을 기본으로 적용
-        Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
-          if (custom[clubId] && custom[clubId].total > 0) {
-            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
-          }
-        });
-      }
-    }
-
     // 라운드 기록에서 클럽별 거리 통계를 계산하여 CLUB_DISTANCES 업데이트
     function updateClubDistancesFromRounds() {
-      const custom = loadCustomClubDistances();
       const rounds = appState.data.rounds.filter(r => r.status === 'completed');
-
-      // 먼저 기본값으로 리셋
-      CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
-
-      // 사용자 커스텀 값이 있으면 우선 적용
-      if (custom) {
-        Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
-          if (custom[clubId] && custom[clubId].total > 0) {
-            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
-          }
-        });
+      if (rounds.length === 0) {
+        CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
+        return;
       }
-
-      if (rounds.length === 0) return;
 
       // 클럽별 거리 수집
       const clubStats = {};
@@ -1233,8 +1150,6 @@
         round.holes.forEach(hole => {
           if (!Array.isArray(hole.shots)) return;
           hole.shots.forEach(shot => {
-            // 리커버리샷은 거리 학습에서 제외 (레이업은 포함)
-            if (shot.isRecovery) return;
             const club = shot.club;
             const dist = parseInt(shot.distance, 10);
             if (club && clubStats[club] !== undefined && dist > 0) {
@@ -1244,19 +1159,19 @@
         });
       });
 
-      // 학습 데이터: 사용자 커스텀이 없는 클럽만 업데이트
+      // 통계 계산 및 업데이트
       Object.keys(clubStats).forEach(clubId => {
-        // 사용자가 직접 설정한 클럽은 학습으로 덮어쓰지 않음
-        if (CLUB_DISTANCES[clubId] && CLUB_DISTANCES[clubId].customSet) return;
-
         const distances = clubStats[clubId];
         if (distances.length >= 2) {
+          // 충분한 데이터가 있으면 학습된 값 사용
           distances.sort((a, b) => a - b);
           const avg = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
           const max = distances[distances.length - 1];
+          // carry는 total의 약 92% 추정 (실측 데이터 없으므로)
           const carry = Math.round(avg * 0.92);
           CLUB_DISTANCES[clubId] = { carry, total: avg, max, count: distances.length, learned: true };
         } else if (distances.length === 1) {
+          // 1개 데이터: 기본값과 블렌딩 (기본값 70% + 실측 30%)
           const defaultDist = DEFAULT_CLUB_DISTANCES[clubId];
           const measured = distances[0];
           const blended = Math.round(defaultDist.total * 0.7 + measured * 0.3);
@@ -1268,12 +1183,13 @@
             learned: true
           };
         } else {
+          // 데이터 없으면 기본값 유지
           CLUB_DISTANCES[clubId] = { ...DEFAULT_CLUB_DISTANCES[clubId], count: 0, learned: false };
         }
       });
     }
 
-    const DEFAULT_CLUBS = [
+    const CLUBS = [
       { id: 'driver', name: '드라이버' },
       { id: '5wood', name: '5W' },
       { id: '7wood', name: '7W' },
@@ -1290,29 +1206,6 @@
       { id: '60', name: '60°' }
     ];
 
-    let CLUBS = JSON.parse(JSON.stringify(DEFAULT_CLUBS));
-
-    // 사용자 골프백(클럽 목록) localStorage 관리
-    const CUSTOM_CLUBS_KEY = 'golf_analyzer_custom_clubs';
-
-    function saveCustomClubs() {
-      try {
-        localStorage.setItem(CUSTOM_CLUBS_KEY, JSON.stringify(CLUBS));
-      } catch (e) { console.error('클럽 목록 저장 실패:', e); }
-    }
-
-    function loadCustomClubs() {
-      try {
-        const saved = localStorage.getItem(CUSTOM_CLUBS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            CLUBS = parsed;
-          }
-        }
-      } catch (e) { console.error('클럽 목록 로드 실패:', e); }
-    }
-
     // ========================================
     // APP STATE
     // ========================================
@@ -1321,8 +1214,7 @@
       pageHistory: [0],
       data: {
         rounds: [],
-        courses: [...DEFAULT_COURSES],
-        clubLearning: {}  // 클럽별 학습 데이터
+        courses: [...DEFAULT_COURSES]
       },
       activeRound: null,
       currentHole: 1,
@@ -1336,10 +1228,8 @@ holePar: null,
       puttingData: null,
       showCourseModal: false,
       showRoundSummaryModal: false,
-      showFinishRoundConfirm: false,  // 라운드 종료 확인 모달
       newCourse: null,
       editingCourse: null,
-      showAllRounds: false  // 라운드 목록 전체 보기 플래그
     };
     // ========================================
     // SAFETY: non-blocking error handling (prevents blank screen)
@@ -1411,19 +1301,6 @@ holePar: null,
     });
 
     // ========================================
-    // UTILITY: HTML ESCAPE (XSS prevention)
-    // ========================================
-    function escHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    // ========================================
     // LOCAL STORAGE
     // ========================================
     function saveData() {
@@ -1448,13 +1325,6 @@ holePar: null,
                 const holes = c.holes || (c.par ? c.par.length : 18) || 18;
                 c.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
               }
-            });
-          }
-        }
-      } catch (e) {
-        console.error('불러오기 실패:', e);
-      }
-    }
 
     // ========================================
     // BACKUP / RESTORE (export/import JSON)
@@ -1482,7 +1352,7 @@ holePar: null,
         const payload = {
           meta: {
             app: 'Golf Round Analyzer',
-            version: 'v10',
+            version: 'v9',
             exportedAt: new Date().toISOString()
           },
           data: appState.data
@@ -1559,6 +1429,14 @@ holePar: null,
       }
     };
 
+            });
+          }
+        }
+      } catch (e) {
+        console.error('불러오기 실패:', e);
+      }
+    }
+
     // ========================================
     // AI CLUB RECOMMENDATION
     // ========================================
@@ -1617,7 +1495,6 @@ holePar: null,
           case 1: renderRoundStartPage(container); break;
           case 2: renderStatsPage(container); break;
           case 3: renderHistoryPage(container); break;
-          case 5: renderAnalysisPage(container); break;
                     case 11: renderExistingCourseSelectionPage(container); break;
           case 12: renderTeeboxSelectionPage(container); break;
 case 4: renderSettingsPage(container); break;
@@ -1652,9 +1529,6 @@ case 4: renderSettingsPage(container); break;
       }
       if (appState.showRoundSummaryModal) {
         app.appendChild(renderRoundSummaryModal());
-      }
-      if (appState.showFinishRoundConfirm) {
-        app.appendChild(renderFinishRoundConfirmModal());
       }
     }
 
@@ -1804,6 +1678,10 @@ case 4: renderSettingsPage(container); break;
             </div>
           ` : ''}
 
+          <button class="home-start-btn" onclick="goToPage(1)">
+            🏌️ 새 라운드 시작
+          </button>
+
           <div class="home-tiles">
             <button class="home-tile active" onclick="goToPage(0)">
               <div class="tile-icon">🏠</div>
@@ -1825,10 +1703,7 @@ case 4: renderSettingsPage(container); break;
               <div class="tile-label">기록</div>
             </button>
 
-            <button class="home-tile" onclick="goToPage(5)">
-              <div class="tile-icon">📈</div>
-              <div class="tile-label">분석</div>
-            </button>
+            <div class="home-tile placeholder" aria-hidden="true"></div>
 
             <button class="home-tile" onclick="goToPage(4)">
               <div class="tile-icon">⚙️</div>
@@ -1836,7 +1711,7 @@ case 4: renderSettingsPage(container); break;
             </button>
           </div>
 
-          <div class="home-version">v10.0.0 • 최종 배포 버전</div>
+          <div class="home-version">v9.0.0 • Par 입력 개선</div>
         </div>
       `;
     }
@@ -1851,13 +1726,7 @@ window.goToPage = function(page) {
       if (inProgressRound) {
         appState.data.rounds = appState.data.rounds.filter(r => r.status !== 'in-progress');
         appState.activeRound = inProgressRound;
-        // holeOrder 기반으로 다음 홀 결정 (10번 시작 순환 지원)
-        const played = inProgressRound.holes.length;
-        if (inProgressRound.holeOrder && inProgressRound.holeOrder[played]) {
-          appState.currentHole = inProgressRound.holeOrder[played];
-        } else {
-          appState.currentHole = played + 1;
-        }
+        appState.currentHole = inProgressRound.holes.length + 1;
         appState.selectedTeeBox = inProgressRound.teeBox;
         render();
       }
@@ -1880,33 +1749,7 @@ window.goToPage = function(page) {
             </button>
 
             <div class="scorecard-box">
-              <div class="scorecard-box-title">📄 스코어카드로 코스 추가</div>
-
-              <div class="scorecard-box-help">
-                <ul class="help-list">
-                  <li>
-                    스코어카드로 코스를 자동 추가하려면<br>
-                    API Key가 필요합니다.
-                  </li>
-
-                  <li>
-                    API Key는 '설정' → ‘API Key 설정’에서<br>
-                    입력하세요.
-                  </li>
-                  
-                  <li>
-                    스코어카드를 카메라로 촬영하거나<br>
-                    갤러리에서 선택해 업로드할 수 있습니다.
-                  </li>
-                  
-                  <li>
-                    홀별 Par, Index, 거리 정보가 명확히<br>
-                    보이는 사진을 권장드립니다.
-                  </li>
-                </ul>
-              </div>
-
-
+              <div class="scorecard-box-title">📄 스코어 카드 이미지로 코스 등록</div>
               <div class="scorecard-btn-row">
                 <button class="scorecard-btn scorecard-btn-dark" onclick="triggerScorecardCamera()">
                   <span class="btn-ico">📷</span> 카메라
@@ -1953,9 +1796,9 @@ window.goToPage = function(page) {
             
             return `
               <button class="course-btn" onclick="selectExistingCourse('${course.id}')">
-                <div class="course-name">${escHtml(course.name)}</div>
+                <div class="course-name">${course.name}</div>
                 <div class="course-details">
-                  ${escHtml(course.location)} • ${course.holes}홀 • Par ${totalPar}
+                  ${course.location} • ${course.holes}홀 • Par ${totalPar}
                 </div>
               </button>
             `;
@@ -1980,7 +1823,7 @@ window.goToPage = function(page) {
         <h1 class="page-title">티박스 선택</h1>
 
         <div class="section">
-          <h2 class="section-title">${escHtml(course.name)}</h2>
+          <h2 class="section-title">${course.name}</h2>
           ${(course.holes === 18) ? `
             <div class="section" style="margin-top: 10px;">
               <h3 class="section-title" style="font-size: 15px; margin-bottom: 10px;">시작 홀</h3>
@@ -2582,11 +2425,6 @@ if (!course) {
     }
 
     window.saveCourseAndRefresh = function() {
-      const validation = validateCourse(appState.newCourse);
-      if (!validation.ok) {
-        applyIndexValidationUI(validation);
-        return;
-      }
       if (appState.newCourse.name) {
         if (appState.editingCourse) {
           const index = appState.data.courses.findIndex(c => c.id === appState.editingCourse);
@@ -2619,19 +2457,19 @@ const holeIndex = appState.currentHole - 1;
       // 기존 코스의 경우
       if (!isNewCourse && appState.activeRound.courseId !== 'new_course') {
         const course = appState.data.courses.find(c => c.id === appState.activeRound.courseId);
-        if (course) {
-          if (course.par && course.par[holeIndex]) {
-            defaultPar = course.par[holeIndex];
-          }
+        if (course && course.par && course.par[holeIndex]) {
+          defaultPar = course.par[holeIndex];
           if (course.distances && course.distances[appState.selectedTeeBox]) {
             defaultDistance = course.distances[appState.selectedTeeBox][holeIndex] || '';
           }
+        }
+
           // Hole Index (Stroke Index)
           if (course.strokeIndex && Array.isArray(course.strokeIndex)) {
             const si = parseInt(course.strokeIndex[holeIndex], 10);
             if (Number.isFinite(si) && si > 0) defaultIndex = si;
           }
-        }
+
       }
 
       const holesPlayed = appState.activeRound.holes.length;
@@ -2665,7 +2503,7 @@ const holeIndex = appState.currentHole - 1;
         ${holesPlayed > 0 ? `
           <div class="round-control-panel">
             <div class="round-info">
-              ${holesPlayed}/${getCourseById(appState.activeRound?.courseId)?.holes || 18} 홀 완료
+              ${holesPlayed}/18 홀 완료
             </div>
             <button class="finish-round-btn" onclick="finishRoundManually()">
               라운드 종료
@@ -2718,33 +2556,18 @@ const holeIndex = appState.currentHole - 1;
     };
 
     window.finishRoundManually = function() {
-      console.log('finishRoundManually 호출됨');
-      appState.showFinishRoundConfirm = true;
-      render();
-    };
-
-    window.confirmFinishRound = function() {
-      console.log('라운드 종료 확인됨');
-      appState.showFinishRoundConfirm = false;
-      finishRound();
-    };
-
-    window.cancelFinishRound = function() {
-      console.log('라운드 종료 취소됨');
-      appState.showFinishRoundConfirm = false;
-      render();
+      if (confirm('라운드를 종료하시겠습니까?')) {
+        finishRound();
+      }
     };
 
     function finishRound() {
-      console.log('finishRound 실행 시작');
       appState.activeRound.status = 'completed';
       appState.data.rounds.push(appState.activeRound);
       
-      console.log('라운드 저장 중...');
       saveData();
       updateClubDistancesFromRounds(); // ✅ 라운드 완료 시 클럽 거리 학습 업데이트
       
-      console.log('라운드 요약 모달 표시');
       appState.showRoundSummaryModal = true;
       render();
     }
@@ -2760,8 +2583,7 @@ const holeIndex = appState.currentHole - 1;
         type: 'tee',
         club: '',
         distance: isPar3 ? (appState.holeDistance || '') : null,
-        shotMode: 'normal',
-        isRecovery: false,
+        shotType: null,
         result: {
           landing: '',
           shape: '',
@@ -2774,7 +2596,7 @@ const holeIndex = appState.currentHole - 1;
     }
 
     // ========================================
-    // SHOT INPUT (간소화: 샷모드 통합, 샷성격 자동, 온그린까지 자유 진행)
+    // SHOT INPUT (테스트1 피드백 완전 반영)
     // ========================================
     function renderShotInput(container) {
       container.classList.add('scrollable');
@@ -2782,22 +2604,25 @@ const holeIndex = appState.currentHole - 1;
       const isTeeShot = shot.type === 'tee';
       const isPar3 = appState.holePar === 3;
       const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
-      const isPar5 = appState.holePar === 5;
-      const isRecovery = shot.isRecovery || false;
-      const shotMode = shot.shotMode || (isRecovery ? 'recovery' : 'normal');
-      const isLayup = shotMode === 'layup';
+      const isShortGame = shot.type === 'short';
       
-      // Hole Index / Shot +N
+      // Hole Index / Shot +N (handicap allowance)
       const __courseForIndex = getCourseById(appState.activeRound?.courseId);
       const __holeIdx = (appState.currentHole || 1) - 1;
       const __strokeIndex = getHoleStrokeIndex(__courseForIndex, __holeIdx);
       const __shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, __strokeIndex);
 
-      // Par 4/5 티샷은 거리 불필요, 그 외는 거리 입력 가능 (레이업샷 포함)
-      const needsDistance = (isTeeShot && isPar3) || !isTeeShot || isLayup;
+      // Par 3는 거리 필요, Par 4/5 티샷은 거리 불필요
+      const needsDistance = (isTeeShot && isPar3) || !isTeeShot;
       
-      // 추천 클럽 (거리 입력 시 자동)
-      const recommendedClub = (needsDistance && shot.distance && !isRecovery) ? getRecommendedClub(shot.distance) : null;
+      // 추천 클럽
+      const recommendedClub = (needsDistance && shot.distance) ? getRecommendedClub(shot.distance) : null;
+
+      // Par 4/5 티샷은 온그린/방향 선택 숨김
+      const showGreenSelection = !(isTeeShot && isPar4or5);
+
+      // 미스 패턴은 페어웨이가 아닐 때만
+      const showMissPattern = isTeeShot && shot.result.landing && shot.result.landing !== 'fairway';
 
       container.innerHTML = `
         <div class="shot-header-unified">
@@ -2815,7 +2640,7 @@ const holeIndex = appState.currentHole - 1;
           </div>
           <div class="shot-header-row-2">
             <div class="shot-header-left">
-              <span class="shot-number">샷 #${shot.number}${isTeeShot ? ' - 티샷' : ''}</span>
+              <span class="shot-number">샷 #${shot.number}${isTeeShot ? ' - 티샷' : isShortGame ? ' - 숏게임' : ' - 어프로치'}</span>
               ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
               ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
             </div>
@@ -2834,166 +2659,163 @@ const holeIndex = appState.currentHole - 1;
           <div class="previous-shots">
             <strong>이전 샷:</strong><br>
             ${appState.shots.map((s, i) => {
-              if (s.isRecovery) return `✓ #${i + 1}: 🚨 리커버리`;
               const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
-              const modeLabel = s.shotMode === 'layup' ? ' 🏌️레이업' : '';
-              const resultText = s.result.onGreen ? '온그린' : s.result.landing || '';
-              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''}${modeLabel}${resultText ? ' → ' + resultText : ''}`;
+              const resultText = s.result.onGreen ? '온그린' : s.result.landing || '오프';
+              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''} → ${resultText}`;
             }).join('<br>')}
           </div>
         ` : ''}
 
-        <div class="section" style="padding: 8px 0;">
-          <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+        ${needsDistance ? `
+          <div class="section">
+            <div class="input-section">
+              <label>남은 거리 (미터) <span class="optional-label">(선택 - 입력 시 클럽 추천 & 거리 학습)</span></label>
+              <input type="number" class="text-input" id="distance-input"
+                value="${shot.distance || ''}" 
+                placeholder="예: 150">
+            </div>
 
-            <button class="choice-btn ${shotMode === 'normal' ? 'selected' : ''}"
-              onclick="setShotMode('normal')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              일반샷
-            </button>
-
-            <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
-              onclick="setShotMode('layup')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              레이업샷
-            </button>
-
-            <button class="choice-btn ${shotMode === 'recovery' ? 'selected' : ''}"
-              onclick="setShotMode('recovery')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              🚨 리커버리샷
-            </button>
-
-          </div>
-        </div>
-
-
-
-        ${isRecovery ? `
-          <div style="background: #fff3cd; border-left: 4px solid var(--red); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
-            <p style="margin: 0; font-size: 13px; line-height: 1.4;">
-              🚨 트러블 상황에서 벗어나는 샷. 거리 학습에 반영되지 않습니다.
-            </p>
+            ${recommendedClub ? `
+              <div class="club-recommendation">
+                💡 추천: ${recommendedClub.name} (평균 ${CLUB_DISTANCES[recommendedClub.id].total}m)
+              </div>
+            ` : ''}
           </div>
         ` : ''}
 
-        ${!isRecovery ? `
-          ${needsDistance ? `
-            <div class="section">
-              <div class="input-section">
-                <label>거리 선택(미터) <span class="optional-label">(선택)</span></label>
-                <input type="number" class="text-input" id="distance-input"
-                  value="${shot.distance || ''}" 
-                  placeholder="예: 150"
-                  oninput="updateDistanceAndRecommend()">
-              </div>
+        <div class="section">
+          <div class="input-section">
+            <label>클럽 선택</label>
+            <select class="select-input" onchange="selectClub(this.value)">
+              <option value="">선택하세요</option>
+              ${CLUBS.map(club => {
+                const dist = CLUB_DISTANCES[club.id];
+                const distText = dist.total > 0 ? ` (${dist.total}m)` : '';
+                const selected = shot.club === club.id ? 'selected' : '';
+                return `<option value="${club.id}" ${selected}>${club.name}${distText}</option>`;
+              }).join('')}
+            </select>
+          </div>
 
-              <div id="club-recommendation-area">
-                ${recommendedClub ? `
-                  <div class="club-recommendation">
-                    💡 추천: ${recommendedClub.name} (캐리 ${CLUB_DISTANCES[recommendedClub.id].carry} / 토탈 ${CLUB_DISTANCES[recommendedClub.id].total} / 맥스 ${CLUB_DISTANCES[recommendedClub.id].max})
-                  </div>
-                ` : ''}
+          ${!isTeeShot && appState.shots.length >= 2 ? `
+            <div class="input-section">
+              <label>샷 타입</label>
+              <div class="button-group">
+                <button class="choice-btn ${shot.type === 'approach' ? 'selected' : ''}" 
+                  onclick="changeShotType('approach')">
+                  어프로치
+                </button>
+                <button class="choice-btn ${shot.type === 'short' ? 'selected' : ''}" 
+                  onclick="changeShotType('short')">
+                  숏게임
+                </button>
               </div>
             </div>
           ` : ''}
 
-          <div class="section">
+          ${isTeeShot && isPar4or5 ? `
             <div class="input-section">
-              <label>클럽 선택</label>
-              <select class="select-input" onchange="selectClub(this.value)">
-                <option value="">선택하세요</option>
-                ${CLUBS.map(club => {
-                  const dist = CLUB_DISTANCES[club.id];
-                  const distText = dist.total > 0 ? ` (${dist.total}m)` : '';
-                  const selected = shot.club === club.id ? 'selected' : '';
-                  return `<option value="${club.id}" ${selected}>${club.name}${distText}</option>`;
+              <label>착지 지점</label>
+              <div class="button-group-3">
+                <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
+                  onclick="setLanding('fairway')">페어웨이</button>
+                <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
+                  onclick="setLanding('rough-left')">좌측 러프</button>
+                <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
+                  onclick="setLanding('rough-right')">우측 러프</button>
+              </div>
+              <div class="button-group" style="margin-top: 8px;">
+                <button class="choice-btn ${shot.result.landing === 'ob' ? 'selected' : ''}" 
+                  onclick="setLanding('ob')">OB</button>
+                <button class="choice-btn ${shot.result.landing === 'hazard' ? 'selected' : ''}" 
+                  onclick="setLanding('hazard')">해저드</button>
+              </div>
+            </div>
+          ` : ''}
+
+          ${isShortGame ? `
+            <div class="input-section">
+              <label>위치</label>
+              <div class="button-group">
+                <button class="choice-btn ${shot.result.location === 'front' ? 'selected' : ''}" 
+                  onclick="setLocation('front')">그린 앞</button>
+                <button class="choice-btn ${shot.result.location === 'side' ? 'selected' : ''}" 
+                  onclick="setLocation('side')">그린 옆</button>
+              </div>
+              <div class="button-group" style="margin-top: 8px;">
+                <button class="choice-btn ${shot.result.location === 'bunker' ? 'selected' : ''}" 
+                  onclick="setLocation('bunker')">벙커</button>
+                <button class="choice-btn ${shot.result.location === 'rough' ? 'selected' : ''}" 
+                  onclick="setLocation('rough')">러프</button>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="input-section">
+            <label>구질</label>
+            <div class="button-group-3">
+              <button class="choice-btn ${shot.result.shape === 'straight' ? 'selected' : ''}" 
+                onclick="setShape('straight')">스트레이트</button>
+              <button class="choice-btn ${shot.result.shape === 'draw' ? 'selected' : ''}" 
+                onclick="setShape('draw')">드로우</button>
+              <button class="choice-btn ${shot.result.shape === 'fade' ? 'selected' : ''}" 
+                onclick="setShape('fade')">페이드</button>
+            </div>
+          </div>
+
+          ${showMissPattern ? `
+            <div class="input-section">
+              <label>미스 패턴 <span class="optional-label">(복수 선택 가능)</span></label>
+              <div class="checkbox-group">
+                ${['hook', 'slice', 'push', 'pull', 'top'].map(miss => {
+                  const labels = { hook: '훅', slice: '슬라이스', push: '푸쉬', pull: '풀', top: '탑볼' };
+                  const isSelected = shot.result.miss && shot.result.miss.includes(miss);
+                  return `
+                    <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
+                      onclick="toggleMiss('${miss}')">
+                      ${labels[miss]}
+                    </div>
+                  `;
                 }).join('')}
-              </select>
+              </div>
+            </div>
+          ` : ''}
+
+          ${showGreenSelection ? `
+            <div class="input-section">
+              <label>온그린 여부</label>
+              <div class="button-group">
+                <button class="choice-btn ${shot.result.onGreen === true ? 'selected' : ''}" 
+                  onclick="setOnGreen(true)">온그린 ✓</button>
+                <button class="choice-btn ${shot.result.onGreen === false ? 'selected' : ''}" 
+                  onclick="setOnGreen(false)">그린 미스</button>
+              </div>
             </div>
 
-            ${(isTeeShot && isPar4or5) || isLayup ? `
+            ${shot.result.onGreen !== null ? `
               <div class="input-section">
-                <label>착지 지점</label>
-                <div class="button-group-3">
-                  <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
-                    onclick="setLanding('fairway')">페어웨이</button>
-                  <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
-                    onclick="setLanding('rough-left')">좌측 러프</button>
-                  <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
-                    onclick="setLanding('rough-right')">우측 러프</button>
-                </div>
-              </div>
-            ` : ''}
-
-            ${((isTeeShot && isPar4or5) || isLayup) ? `
-              <div class="input-section">
-                <label>구질 <span class="optional-label">(선택)</span></label>
-                <div class="button-group-3">
-                  <button class="choice-btn ${shot.result.shape === 'draw' ? 'selected' : ''}" 
-                    onclick="toggleShape('draw')">드로우</button>
-                  <button class="choice-btn ${shot.result.shape === 'straight' ? 'selected' : ''}" 
-                    onclick="toggleShape('straight')">스트레이트</button>
-                  <button class="choice-btn ${shot.result.shape === 'fade' ? 'selected' : ''}" 
-                    onclick="toggleShape('fade')">페이드</button>
-                </div>
-              </div>
-            ` : ''}
-
-            ${((isTeeShot && isPar4or5) || isLayup) && shot.result.landing && shot.result.landing !== 'fairway' ? `
-              <div class="input-section">
-                <label>미스 패턴 <span class="optional-label">(선택)</span></label>
+                <label>${shot.result.onGreen ? '핀 위치 대비' : '결과'} <span class="optional-label">(복수 선택)</span></label>
                 <div class="checkbox-group">
-                  ${['hook', 'slice', 'push', 'pull', 'open', 'close'].map(miss => {
-                    const labels = { hook: '훅', slice: '슬라이스', push: '푸쉬', pull: '풀', open: '헤드열림', close: '헤드닫힘' };
-                    const isSelected = shot.result.miss && shot.result.miss.includes(miss);
+                  ${['short', 'long', 'left', 'right', 'within1m'].map(dir => {
+                    const labels = { short: '짧음', long: '김', left: '좌측', right: '우측', within1m: '1m 이내' };
+                    const isSelected = shot.result.direction && shot.result.direction.includes(dir);
                     return `
                       <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
-                        onclick="toggleMiss('${miss}')">
-                        ${labels[miss]}
+                        onclick="toggleDirection('${dir}')">
+                        ${labels[dir]}
                       </div>
                     `;
                   }).join('')}
                 </div>
               </div>
             ` : ''}
-
-            ${(!isTeeShot || isPar3) && !isLayup ? `
-              <div class="input-section">
-                <label>온그린 여부</label>
-                <div class="button-group">
-                  <button class="choice-btn ${shot.result.onGreen === true ? 'selected' : ''}" 
-                    onclick="setOnGreen(true)">온그린 ✓</button>
-                  <button class="choice-btn ${shot.result.onGreen === false ? 'selected' : ''}" 
-                    onclick="setOnGreen(false)">그린 미스</button>
-                </div>
-              </div>
-
-              ${shot.result.onGreen !== null ? `
-                <div class="input-section">
-                  <label>${shot.result.onGreen ? '핀 위치 대비' : '결과'} <span class="optional-label">(선택)</span></label>
-                  <div class="checkbox-group">
-                    ${['short', 'long', 'left', 'right', 'within1m'].map(dir => {
-                      const labels = { short: '짧음', long: '김', left: '좌측', right: '우측', within1m: '1m 이내' };
-                      const isSelected = shot.result.direction && shot.result.direction.includes(dir);
-                      return `
-                        <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
-                          onclick="toggleDirection('${dir}')">
-                          ${labels[dir]}
-                        </div>
-                      `;
-                    }).join('')}
-                  </div>
-                </div>
-              ` : ''}
-            ` : ''}
-          </div>
-        ` : ''}
+          ` : ''}
+        </div>
 
         <button class="primary-btn" 
           ${!canCompleteShot() ? 'disabled' : ''} 
           onclick="completeShot()">
-          ${isRecovery ? '다음 샷으로 →' : (shot.result.onGreen ? '퍼팅 입력으로 →' : '다음 샷으로 →')}
+          ${shot.result.onGreen ? '퍼팅 입력으로 →' : '다음 샷으로 →'}
         </button>
       `;
 
@@ -3014,48 +2836,9 @@ const holeIndex = appState.currentHole - 1;
       render();
     };
 
-    window.setShotMode = function(mode) {
-      appState.currentShot.shotMode = mode;
-      appState.currentShot.isRecovery = (mode === 'recovery');
-      if (mode === 'recovery') {
-        // 리커버리샷 선택 시 다른 필드 초기화
-        appState.currentShot.club = '';
-        appState.currentShot.distance = '';
-        appState.currentShot.result = {
-          landing: '',
-          location: '',
-          onGreen: null,
-          direction: [],
-          shape: '',
-          miss: []
-        };
-      }
+    window.changeShotType = function(type) {
+      appState.currentShot.type = type;
       render();
-    };
-
-    // 거리 입력 시 실시간 클럽 추천 업데이트
-    window.updateDistanceAndRecommend = function() {
-      const distInput = document.getElementById('distance-input');
-      if (distInput) {
-        appState.currentShot.distance = distInput.value;
-        const dist = parseInt(distInput.value, 10);
-        const area = document.getElementById('club-recommendation-area');
-        if (area && dist > 0) {
-          const rec = getRecommendedClub(dist);
-          if (rec) {
-            const d = CLUB_DISTANCES[rec.id];
-            area.innerHTML = `
-              <div class="club-recommendation">
-                💡 추천: ${rec.name} (캐리 ${d.carry} / 토탈 ${d.total} / 맥스 ${d.max})
-              </div>
-            `;
-          } else {
-            area.innerHTML = '';
-          }
-        } else if (area) {
-          area.innerHTML = '';
-        }
-      }
     };
 
     window.setLanding = function(type) {
@@ -3068,12 +2851,8 @@ const holeIndex = appState.currentHole - 1;
       render();
     };
 
-    window.toggleShape = function(shape) {
-      if (appState.currentShot.result.shape === shape) {
-        appState.currentShot.result.shape = '';
-      } else {
-        appState.currentShot.result.shape = shape;
-      }
+    window.setShape = function(shape) {
+      appState.currentShot.result.shape = shape;
       render();
     };
 
@@ -3114,29 +2893,17 @@ const holeIndex = appState.currentHole - 1;
 
     function canCompleteShot() {
       const shot = appState.currentShot;
-      
-      // 리커버리샷은 즉시 진행 가능
-      if (shot.isRecovery) return true;
-      
       const isTeeShot = shot.type === 'tee';
+      const isPar3 = appState.holePar === 3;
       const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
-      const isLayup = shot.shotMode === 'layup';
       
-      // 클럽 선택 필수
       if (!shot.club) return false;
+      // ✅ 거리 입력은 선택 사항 (필수 아님)
+      if (isTeeShot && isPar4or5 && !shot.result.landing) return false;
       
-      // Par 4/5 티샷: 착지 지점 필수 (온그린 선택 없음)
-      if (isTeeShot && isPar4or5) {
-        return !!shot.result.landing;
-      }
-      
-      // 레이업샷: 착지 지점 필수 (온그린 선택 없음)
-      if (isLayup) {
-        return !!shot.result.landing;
-      }
-      
-      // 그 외 (Par 3 티샷, 샷 #2~): 온그린 여부 필수
-      if (shot.result.onGreen === null) return false;
+      // Par 4/5 티샷은 온그린 체크 안 함
+      const showGreenSelection = !(isTeeShot && isPar4or5);
+      if (showGreenSelection && shot.result.onGreen === null) return false;
       
       return true;
     }
@@ -3152,6 +2919,31 @@ const holeIndex = appState.currentHole - 1;
 
       appState.shots.push({...appState.currentShot});
 
+      const isTeeShot = appState.currentShot.type === 'tee';
+      const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
+
+      // Par 4/5 티샷은 무조건 다음 샷으로
+      if (isTeeShot && isPar4or5) {
+        const nextShotNumber = appState.shots.length + 1;
+        appState.currentShot = {
+          number: nextShotNumber,
+          type: 'approach',
+          club: '',
+          distance: '',
+          shotType: 'approach',
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        };
+        render();
+        return;
+      }
+
       // 온그린이면 퍼팅으로
       if (appState.currentShot.result.onGreen) {
         appState.puttingData = {
@@ -3159,15 +2951,19 @@ const holeIndex = appState.currentHole - 1;
         };
         appState.currentShot = null;
       } else {
-        // 온그린 아니면 다음 샷 (type은 #1만 tee, 이후 approach)
+        // 온그린 실패면 다음 샷
         const nextShotNumber = appState.shots.length + 1;
+        const lastShot = appState.shots[appState.shots.length - 1];
+        
+        // 샷 #3부터는 타입 선택 가능
+        const shotType = appState.shots.length >= 2 ? 'approach' : 'approach';
+        
         appState.currentShot = {
           number: nextShotNumber,
-          type: 'approach',
+          type: shotType,
           club: '',
           distance: '',
-          shotMode: 'normal',
-          isRecovery: false,
+          shotType: 'approach',
           result: {
             landing: '',
             location: '',
@@ -3276,8 +3072,7 @@ const holeIndex = appState.currentHole - 1;
         appState.currentHole = appState.activeRound.holeOrder[holesPlayed];
       } else {
         appState.currentHole++;
-      }
-      appState.holePar = null;
+      }appState.holePar = null;
       appState.holeDistance = '';
       appState.shots = [];
       appState.currentShot = null;
@@ -3423,49 +3218,6 @@ const holeIndex = appState.currentHole - 1;
 
     // ROUND SUMMARY MODAL
     // ========================================
-    // ========================================
-    // FINISH ROUND CONFIRM MODAL
-    // ========================================
-    function renderFinishRoundConfirmModal() {
-      const modal = document.createElement('div');
-      modal.className = 'modal active';
-      
-      const holesPlayed = appState.activeRound?.holes?.length || 0;
-      const totalHoles = getCourseById(appState.activeRound?.courseId)?.holes || 18;
-
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 400px;">
-          <div class="modal-header">
-            <h2 class="modal-title">⚠️ 라운드 종료</h2>
-          </div>
-
-          <div style="padding: 20px 0; text-align: center;">
-            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 10px;">
-              현재 <b>${holesPlayed}/${totalHoles}</b> 홀을 완료했습니다.
-            </p>
-            <p style="font-size: 14px; opacity: 0.8;">
-              라운드를 종료하시겠습니까?
-            </p>
-          </div>
-
-          <div style="display: flex; gap: 10px;">
-            <button class="secondary-btn" onclick="cancelFinishRound()" style="flex: 1;">
-              취소
-            </button>
-            <button class="primary-btn" onclick="confirmFinishRound()" style="flex: 1; background: var(--red);">
-              종료
-            </button>
-          </div>
-        </div>
-      `;
-
-      modal.onclick = (e) => {
-        if (e.target === modal) cancelFinishRound();
-      };
-
-      return modal;
-    }
-
     function renderRoundSummaryModal() {
       const modal = document.createElement('div');
       modal.className = 'modal active';
@@ -3493,10 +3245,7 @@ const holeIndex = appState.currentHole - 1;
 
           <div class="par-summary" style="margin-bottom: 18px;">
             <div class="par-summary-row"><span>Gross</span><span><b>${s.gross}</b></span></div>
-            <div class="par-summary-row"><span>Nett</span><span><b>${(() => {
-              const ntp = s.nett - s.totalPar;
-              return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp);
-            })()}</b></span></div>
+            <div class="par-summary-row"><span>Nett</span><span><b>${s.nett}</b></span></div>
             <div class="par-summary-row"><span>Stableford</span><span><b>${s.stableford} pts</b></span></div>
           </div>
 
@@ -3603,12 +3352,11 @@ const holeIndex = appState.currentHole - 1;
           <div class="club-list">
             ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => {
               const d = CLUB_DISTANCES[club.id];
-              const sqColor = d.customSet ? '#e53e3e' : (d.learned ? '#38a169' : '#ecc94b');
-              const countText = d.customSet ? ' (사용자 설정)' : (d.learned && d.count ? ` (${d.count}회)` : ' (기본값)');
+              const icon = d.learned ? '📗' : '📘';
+              const countText = d.learned && d.count ? ` (${d.count}회)` : ' (기본값)';
               return `
               <div class="club-item">
-                <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
-                ${club.name}: ${d.total}m${countText}
+                ${icon} ${club.name}: ${d.total}m${countText}
               </div>`;
             }).join('')}
           </div>
@@ -3655,10 +3403,7 @@ const holeIndex = appState.currentHole - 1;
                 <div class="round-score-info" style="min-width: 120px; text-align: right;">
                   <div class="total-score">${totalScore}</div>
                   <div style="font-size: 13px; color: var(--brown); opacity: 0.75; margin-top: 2px;">
-                    Nett <b>${(() => {
-                      const ntp = s.nett - s.totalPar;
-                      return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp);
-                    })()}</b>
+                    Nett <b>${s.nett}</b>
                   </div>
                   <div style="font-size: 13px; color: var(--brown); opacity: 0.75;">
                     Stableford <b>${s.stableford}</b> pts
@@ -3703,842 +3448,6 @@ const holeIndex = appState.currentHole - 1;
     };
 
     
-    // ========================================
-    // ANALYSIS PAGE (새로 추가)
-    // ========================================
-    function renderAnalysisPage(container) {
-      container.classList.add('scrollable');
-      container.innerHTML = `
-        <h1 class="page-title">📈 분석</h1>
-
-        <div class="section">
-          <h2 class="section-title">분석 유형 선택</h2>
-          <div class="button-group" style="flex-direction: column; gap: 12px;">
-            <button class="secondary-btn" onclick="showRoundByRoundAnalysis()">
-              📅 라운드별 분석
-            </button>
-            <button class="secondary-btn" onclick="showOverallStatistics()">
-              📊 종합 통계
-            </button>
-            <button class="secondary-btn" onclick="showClubAnalysis()">
-              🎯 클럽 분석
-            </button>
-            <button class="secondary-btn" onclick="showImprovementGuide()">
-              💡 개선 가이드
-            </button>
-          </div>
-        </div>
-
-        <div id="analysis-result" class="section" style="display: none;">
-          <!-- 분석 결과가 여기에 표시됩니다 -->
-        </div>
-      `;
-    }
-
-    // 분석 함수들
-    
-    // ========================================
-    // 1. 라운드별 분석
-    // ========================================
-    window.showRoundByRoundAnalysis = function() {
-      const resultDiv = document.getElementById('analysis-result');
-      if (!resultDiv) return;
-
-      const rounds = appState.data.rounds.filter(r => r.status === 'completed').reverse();
-      
-      if (rounds.length === 0) {
-        resultDiv.innerHTML = '<p style="text-align:center; opacity:0.7;">완료된 라운드가 없습니다.</p>';
-        resultDiv.style.display = 'block';
-        return;
-      }
-
-      const displayCount = appState.showAllRounds ? rounds.length : 10;
-
-      resultDiv.innerHTML = `
-        <h2 class="section-title">📅 라운드별 분석</h2>
-        <p style="margin-bottom: 16px; opacity: 0.8;">
-          분석할 라운드를 선택하세요
-        </p>
-        
-        ${rounds.slice(0, displayCount).map((round, idx) => {
-          const s = calcRoundScores(round);
-          const actualIndex = appState.data.rounds.length - 1 - idx;
-          return `
-            <button class="course-btn" onclick="analyzeSpecificRound(${actualIndex})" style="margin-bottom: 12px; text-align: left;">
-              <div class="course-info">
-                <div class="course-name">
-                  ${new Date(round.date).toLocaleDateString('ko-KR')} - ${round.course}
-                </div>
-                <div class="course-details">
-                  ${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar}) • 
-                  ${round.holes.length}홀 완료
-                </div>
-              </div>
-            </button>
-          `;
-        }).join('')}
-        
-        ${rounds.length > 10 && !appState.showAllRounds ? `
-          <button class="secondary-btn" onclick="appState.showAllRounds=true; showRoundByRoundAnalysis();">
-            이전 라운드 더보기 (${rounds.length - 10}개)
-          </button>
-        ` : ''}
-        
-        ${appState.showAllRounds ? `
-          <button class="secondary-btn" onclick="appState.showAllRounds=false; showRoundByRoundAnalysis();">
-            최근 10개만 보기
-          </button>
-        ` : ''}
-      `;
-      resultDiv.style.display = 'block';
-    };
-
-    window.analyzeSpecificRound = function(roundIndex) {
-      const resultDiv = document.getElementById('analysis-result');
-      if (!resultDiv) return;
-
-      const round = appState.data.rounds[roundIndex];
-      if (!round) return;
-
-      const analysis = analyzeTodayRound(round);
-      const s = calcRoundScores(round);
-
-      resultDiv.innerHTML = `
-        <h2 class="section-title">📅 라운드 상세 분석</h2>
-        <p style="margin-bottom: 12px; opacity: 0.8;">
-          ${round.course} • ${new Date(round.date).toLocaleDateString('ko-KR')}
-        </p>
-        <p style="margin-bottom: 16px; font-size: 14px; opacity: 0.7;">
-          Gross ${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar}) • 
-          Nett ${(() => { const ntp = s.nett - s.totalPar; return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp); })()} • 
-          Stableford ${s.stableford} pts
-        </p>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 샷 정확도 트렌드</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>전반 9홀 정확도</span><span><b>${analysis.frontNineAccuracy}%</b></span></div>
-          <div class="par-summary-row"><span>후반 9홀 정확도</span><span><b>${analysis.backNineAccuracy}%</b></span></div>
-          <div class="par-summary-row"><span>전체 정확도</span><span><b>${analysis.overallAccuracy}%</b></span></div>
-        </div>
-        ${analysis.frontNineAccuracy > analysis.backNineAccuracy + 10 ? 
-          '<p style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 8px; font-size: 14px;">⚠️ 후반 집중력이 떨어졌습니다. 체력 관리와 멘탈 유지에 신경 쓰세요.</p>' : ''}
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🏌️ 티샷 분석</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>페어웨이 적중</span><span><b>${analysis.teeShot.fairway}회</b></span></div>
-          <div class="par-summary-row"><span>좌측 러프</span><span><b>${analysis.teeShot.leftRough}회</b></span></div>
-          <div class="par-summary-row"><span>우측 러프</span><span><b>${analysis.teeShot.rightRough}회</b></span></div>
-          <div class="par-summary-row"><span>기타 (OB/해저드)</span><span><b>${analysis.teeShot.other}회</b></span></div>
-        </div>
-        <p style="margin-top: 8px; padding: 8px; background: var(--sand); border-radius: 8px; font-size: 14px;">
-          ${analysis.teeShot.tendency}
-        </p>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">⛳ 아이언샷 분석</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>짧았던 샷</span><span><b>${analysis.ironShot.short}회</b></span></div>
-          <div class="par-summary-row"><span>적정 거리</span><span><b>${analysis.ironShot.accurate}회</b></span></div>
-          <div class="par-summary-row"><span>길었던 샷</span><span><b>${analysis.ironShot.long}회</b></span></div>
-        </div>
-        <p style="margin-top: 8px; padding: 8px; background: var(--sand); border-radius: 8px; font-size: 14px;">
-          ${analysis.ironShot.tendency}
-        </p>
-
-        <button class="secondary-btn" onclick="showRoundByRoundAnalysis()" style="margin-top: 16px;">
-          ← 라운드 목록으로 돌아가기
-        </button>
-      `;
-      resultDiv.style.display = 'block';
-    };
-
-    // ========================================
-    // 2. 종합 통계
-    // ========================================
-    window.showOverallStatistics = function() {
-      const resultDiv = document.getElementById('analysis-result');
-      if (!resultDiv) return;
-
-      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
-      if (rounds.length === 0) {
-        resultDiv.innerHTML = '<p style="text-align:center; opacity:0.7;">완료된 라운드가 없습니다.</p>';
-        resultDiv.style.display = 'block';
-        return;
-      }
-
-      const analysis = analyzeAllRounds(rounds);
-      const holeAvg = analyzeHoleAverages(rounds);
-      const monthly = analyzeMonthlyTrend(rounds);
-      const scoreDist = analyzeScoreDistribution(rounds);
-
-      resultDiv.innerHTML = `
-        <h2 class="section-title">📊 종합 통계</h2>
-        <p style="margin-bottom: 16px; opacity: 0.8;">
-          총 ${rounds.length}개 라운드 분석
-        </p>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📈 평균 스코어</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>평균 Gross</span><span><b>${analysis.avgGross}타</b></span></div>
-          <div class="par-summary-row"><span>최고 기록</span><span><b>${analysis.bestGross}타</b></span></div>
-          <div class="par-summary-row"><span>최근 5라운드 평균</span><span><b>${analysis.recent5Avg}타</b></span></div>
-        </div>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🎯 정확도 통계</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>페어웨이 안착률</span><span><b>${analysis.fairwayHitRate}%</b></span></div>
-          <div class="par-summary-row"><span>그린 적중률 (GIR)</span><span><b>${analysis.girRate}%</b></span></div>
-          <div class="par-summary-row"><span>평균 퍼팅</span><span><b>${analysis.avgPutts}개/홀</b></span></div>
-        </div>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 홀별 평균</h3>
-        <div class="par-summary">
-          <div class="par-summary-row"><span>Par 3 평균</span><span><b>${holeAvg.par3Avg}타 (Par ${holeAvg.par3Diff > 0 ? '+' : ''}${holeAvg.par3Diff})</b></span></div>
-          <div class="par-summary-row"><span>Par 4 평균</span><span><b>${holeAvg.par4Avg}타 (Par ${holeAvg.par4Diff > 0 ? '+' : ''}${holeAvg.par4Diff})</b></span></div>
-          <div class="par-summary-row"><span>Par 5 평균</span><span><b>${holeAvg.par5Avg}타 (Par ${holeAvg.par5Diff > 0 ? '+' : ''}${holeAvg.par5Diff})</b></span></div>
-        </div>
-        ${holeAvg.weakest ? `<p style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 8px; font-size: 14px;">⚠️ ${holeAvg.weakest}이 가장 약합니다.</p>` : ''}
-
-        ${monthly.length > 0 ? `
-          <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📈 월별 추세</h3>
-          <div class="par-summary">
-            ${monthly.map(m => `
-              <div class="par-summary-row">
-                <span>${m.month}</span>
-                <span><b>${m.avgScore}타 (${m.count}라운드)${m.trend}</b></span>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 스코어 분포</h3>
-        <div class="par-summary">
-          ${scoreDist.map(sd => `
-            <div class="par-summary-row">
-              <span>${sd.range}</span>
-              <span style="display: flex; align-items: center; gap: 8px;">
-                <span style="background: var(--green-light); height: 12px; width: ${sd.percentage * 2}px; border-radius: 4px;"></span>
-                <b>${sd.percentage}% (${sd.count}라운드)</b>
-              </span>
-            </div>
-          `).join('')}
-        </div>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">💪 실력 향상 추세</h3>
-        <p style="padding: 12px; background: var(--sand); border-radius: 8px; font-size: 14px;">
-          ${analysis.improvementTrend}
-        </p>
-      `;
-      resultDiv.style.display = 'block';
-    };
-
-    function analyzeHoleAverages(rounds) {
-      let par3Total = 0, par3Count = 0;
-      let par4Total = 0, par4Count = 0;
-      let par5Total = 0, par5Count = 0;
-
-      rounds.forEach(round => {
-        round.holes.forEach(hole => {
-          const par = hole.par;
-          const score = hole.score || 0;
-          
-          if (par === 3) { par3Total += score; par3Count++; }
-          else if (par === 4) { par4Total += score; par4Count++; }
-          else if (par === 5) { par5Total += score; par5Count++; }
-        });
-      });
-
-      const par3Avg = par3Count > 0 ? (par3Total / par3Count).toFixed(1) : 0;
-      const par4Avg = par4Count > 0 ? (par4Total / par4Count).toFixed(1) : 0;
-      const par5Avg = par5Count > 0 ? (par5Total / par5Count).toFixed(1) : 0;
-
-      const par3Diff = par3Count > 0 ? (par3Avg - 3).toFixed(1) : 0;
-      const par4Diff = par4Count > 0 ? (par4Avg - 4).toFixed(1) : 0;
-      const par5Diff = par5Count > 0 ? (par5Avg - 5).toFixed(1) : 0;
-
-      let weakest = '';
-      const diffs = [
-        { name: 'Par 3 홀', diff: parseFloat(par3Diff) },
-        { name: 'Par 4 홀', diff: parseFloat(par4Diff) },
-        { name: 'Par 5 홀', diff: parseFloat(par5Diff) }
-      ];
-      const maxDiff = diffs.reduce((max, d) => d.diff > max.diff ? d : max, diffs[0]);
-      if (maxDiff.diff > 1.0) weakest = maxDiff.name;
-
-      return { par3Avg, par4Avg, par5Avg, par3Diff, par4Diff, par5Diff, weakest };
-    }
-
-    function analyzeMonthlyTrend(rounds) {
-      if (rounds.length === 0) return [];
-
-      const monthlyData = {};
-      
-      rounds.forEach(round => {
-        const date = new Date(round.date);
-        const key = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
-        if (!monthlyData[key]) {
-          monthlyData[key] = { scores: [], count: 0 };
-        }
-        
-        const s = calcRoundScores(round);
-        monthlyData[key].scores.push(s.gross);
-        monthlyData[key].count++;
-      });
-
-      const monthly = Object.keys(monthlyData)
-        .sort()
-        .reverse()
-        .slice(0, 6)
-        .map((key, idx, arr) => {
-          const data = monthlyData[key];
-          const avgScore = Math.round(data.scores.reduce((a,b) => a+b, 0) / data.count);
-          
-          let trend = '';
-          if (idx < arr.length - 1) {
-            const prevKey = arr[idx + 1];
-            const prevAvg = Math.round(monthlyData[prevKey].scores.reduce((a,b) => a+b, 0) / monthlyData[prevKey].count);
-            const diff = avgScore - prevAvg;
-            if (diff < -1) trend = ` ↓ ${Math.abs(diff)}타 개선`;
-            else if (diff > 1) trend = ` ↑ ${diff}타 상승`;
-          }
-          
-          return {
-            month: key.replace('.', '년 ') + '월',
-            avgScore,
-            count: data.count,
-            trend
-          };
-        });
-
-      return monthly;
-    }
-
-    function analyzeScoreDistribution(rounds) {
-      const ranges = [
-        { name: '70대', min: 70, max: 79 },
-        { name: '80대', min: 80, max: 89 },
-        { name: '90대', min: 90, max: 99 },
-        { name: '100대+', min: 100, max: 999 }
-      ];
-
-      const distribution = ranges.map(range => {
-        const count = rounds.filter(r => {
-          const s = calcRoundScores(r);
-          return s.gross >= range.min && s.gross <= range.max;
-        }).length;
-        
-        const percentage = rounds.length > 0 ? Math.round((count / rounds.length) * 100) : 0;
-        
-        return {
-          range: range.name,
-          count,
-          percentage
-        };
-      }).filter(d => d.count > 0);
-
-      return distribution;
-    }
-
-    // Helper function for round analysis
-    function analyzeTodayRound(round) {
-      let frontNineShots = 0, frontNineAccurate = 0;
-      let backNineShots = 0, backNineAccurate = 0;
-      
-      let fairway = 0, leftRough = 0, rightRough = 0, other = 0;
-      let ironShort = 0, ironAccurate = 0, ironLong = 0;
-
-      round.holes.forEach((hole, idx) => {
-        if (!hole.shots) return;
-
-        hole.shots.forEach(shot => {
-          // 리커버리샷은 분석에서 제외
-          if (shot.isRecovery) return;
-          
-          const isFrontNine = idx < 9;
-          if (isFrontNine) {
-            frontNineShots++;
-            if (shot.result.onGreen) frontNineAccurate++;
-          } else {
-            backNineShots++;
-            if (shot.result.onGreen) backNineAccurate++;
-          }
-
-          if (shot.type === 'tee') {
-            if (shot.result.landing === 'fairway') fairway++;
-            else if (shot.result.landing === 'rough-left') leftRough++;
-            else if (shot.result.landing === 'rough-right') rightRough++;
-            else other++;
-          }
-
-          if (shot.distance && shot.result.direction) {
-            if (shot.result.direction.includes('short')) ironShort++;
-            else if (shot.result.direction.includes('long')) ironLong++;
-            else ironAccurate++;
-          }
-        });
-      });
-
-      const frontAcc = frontNineShots > 0 ? Math.round((frontNineAccurate / frontNineShots) * 100) : 0;
-      const backAcc = backNineShots > 0 ? Math.round((backNineAccurate / backNineShots) * 100) : 0;
-      const overallAcc = (frontNineShots + backNineShots) > 0 
-        ? Math.round(((frontNineAccurate + backNineAccurate) / (frontNineShots + backNineShots)) * 100) 
-        : 0;
-
-      let teeTendency = '';
-      if (fairway > leftRough && fairway > rightRough) {
-        teeTendency = '✅ 페어웨이 적중률이 높습니다!';
-      } else if (rightRough > leftRough) {
-        teeTendency = '⚠️ 우측 편향이 심했습니다.';
-      } else if (leftRough > rightRough) {
-        teeTendency = '⚠️ 좌측 편향이 심했습니다.';
-      } else {
-        teeTendency = '양쪽 러프에 고르게 분포되었습니다.';
-      }
-
-      let ironTendency = '';
-      const totalIron = ironShort + ironAccurate + ironLong;
-      if (totalIron === 0) {
-        ironTendency = '거리 데이터가 기록되지 않았습니다.';
-      } else if (ironShort > ironLong && ironShort > ironAccurate) {
-        ironTendency = `⚠️ 아이언샷의 ${Math.round((ironShort/totalIron)*100)}%가 짧았습니다. 한 클럽 더 사용을 권장합니다.`;
-      } else if (ironLong > ironShort && ironLong > ironAccurate) {
-        ironTendency = `⚠️ 아이언샷의 ${Math.round((ironLong/totalIron)*100)}%가 길었습니다.`;
-      } else {
-        ironTendency = '✅ 거리 컨트롤이 좋았습니다!';
-      }
-
-      return {
-        frontNineAccuracy: frontAcc,
-        backNineAccuracy: backAcc,
-        overallAccuracy: overallAcc,
-        teeShot: { fairway, leftRough, rightRough, other, tendency: teeTendency },
-        ironShot: { short: ironShort, accurate: ironAccurate, long: ironLong, tendency: ironTendency }
-      };
-    }
-
-    // ========================================
-    // 3. 클럽 분석
-    // ========================================
-    window.showClubAnalysis = function() {
-      const resultDiv = document.getElementById('analysis-result');
-      if (!resultDiv) return;
-
-      const analysis = analyzeClubAccuracy();
-
-      let html = `
-        <h2 class="section-title">🎯 클럽 분석</h2>
-        <p style="margin-bottom: 16px; opacity: 0.8;">
-          각 클럽별 사용 통계와 정확도 분석
-        </p>
-      `;
-
-      if (analysis.length === 0) {
-        html += '<p style="text-align:center; opacity:0.7;">아직 충분한 데이터가 없습니다.</p>';
-      } else {
-        analysis.forEach(club => {
-          html += `
-            <div style="margin-bottom: 16px; padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--sand);">
-              <h3 style="font-size: 15px; color: var(--green-primary); margin-bottom: 8px;">${club.name}</h3>
-              <div class="par-summary" style="margin: 0;">
-                <div class="par-summary-row"><span>사용 횟수</span><span><b>${club.count}회</b></span></div>
-                <div class="par-summary-row"><span>온그린 성공</span><span><b>${club.onGreen}회 (${club.onGreenRate}%)</b></span></div>
-                ${club.avgDistance ? `<div class="par-summary-row"><span>평균 거리</span><span><b>${club.avgDistance}m</b></span></div>` : ''}
-                ${club.shortCount > 0 ? `<div class="par-summary-row"><span>짧았던 샷</span><span><b>${club.shortCount}회</b></span></div>` : ''}
-                ${club.longCount > 0 ? `<div class="par-summary-row"><span>길었던 샷</span><span><b>${club.longCount}회</b></span></div>` : ''}
-              </div>
-              ${club.tendency ? `<p style="margin-top: 8px; font-size: 13px; padding: 8px; background: var(--sand); border-radius: 8px;">${club.tendency}</p>` : ''}
-            </div>
-          `;
-        });
-      }
-
-      resultDiv.innerHTML = html;
-      resultDiv.style.display = 'block';
-    };
-
-    // ========================================
-    // 4. 개선 가이드
-    // ========================================
-    window.showImprovementGuide = function() {
-      const resultDiv = document.getElementById('analysis-result');
-      if (!resultDiv) return;
-
-      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
-      if (rounds.length < 3) {
-        resultDiv.innerHTML = `
-          <h2 class="section-title">💡 개선 가이드</h2>
-          <p style="text-align:center; opacity:0.7; padding: 20px;">
-            신뢰할 수 있는 분석을 위해 최소 3라운드 이상의 데이터가 필요합니다.<br>
-            현재: ${rounds.length}라운드
-          </p>
-        `;
-        resultDiv.style.display = 'block';
-        return;
-      }
-
-      const weaknesses = analyzeWeaknesses(rounds);
-      const clubUsage = analyzeClubUsageStats(rounds);
-
-      resultDiv.innerHTML = `
-        <h2 class="section-title">💡 개선 가이드</h2>
-        <p style="margin-bottom: 16px; opacity: 0.8;">
-          데이터 기반 약점 진단 및 개선 방향
-        </p>
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">⚠️ 약점 진단</h3>
-        ${weaknesses.map((w, idx) => `
-          <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 12px; border-left: 4px solid ${w.priority === 'high' ? 'var(--red)' : 'var(--blue)'};">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span style="font-size: 18px;">${w.priority === 'high' ? '🔴' : '🟡'}</span>
-              <strong style="font-size: 15px;">${idx + 1}. ${w.name}</strong>
-              ${w.priority === 'high' ? '<span style="background: var(--red); color: white; padding: 2px 8px; border-radius: 8px; font-size: 11px;">최우선</span>' : ''}
-            </div>
-            <div class="par-summary" style="margin: 8px 0;">
-              <div class="par-summary-row"><span>현재</span><span><b>${w.current}</b></span></div>
-              <div class="par-summary-row"><span>목표</span><span><b>${w.target}</b></span></div>
-              ${w.effect ? `<div class="par-summary-row"><span>개선 효과</span><span><b>${w.effect}</b></span></div>` : ''}
-            </div>
-            ${w.advice ? `<p style="font-size: 13px; opacity: 0.8; margin-top: 8px;">💡 ${w.advice}</p>` : ''}
-          </div>
-        `).join('')}
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🏌️ 클럽 사용 통계</h3>
-        
-        <div style="margin-bottom: 12px;">
-          <strong style="font-size: 14px; color: var(--brown);">가장 많이 사용한 클럽</strong>
-          <div style="margin-top: 8px;">
-            ${clubUsage.mostUsed.slice(0, 5).map((c, idx) => `
-              <div style="padding: 6px 0; border-bottom: 1px solid var(--sand); display: flex; justify-content: space-between;">
-                <span>${idx + 1}. ${c.name}</span>
-                <span><b>${c.count}회</b></span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        ${clubUsage.mostAccurate.length > 0 ? `
-          <div style="margin-bottom: 12px;">
-            <strong style="font-size: 14px; color: var(--brown);">가장 정확한 클럽 (온그린율)</strong>
-            <div style="margin-top: 8px;">
-              ${clubUsage.mostAccurate.slice(0, 5).map((c, idx) => `
-                <div style="padding: 6px 0; border-bottom: 1px solid var(--sand); display: flex; justify-content: space-between;">
-                  <span>${idx + 1}. ${c.name}</span>
-                  <span><b>${c.rate}%</b> (${c.onGreen}/${c.total})</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">💡 맞춤 조언</h3>
-        <div style="padding: 12px; background: var(--sand); border-radius: 12px; font-size: 14px; line-height: 1.6;">
-          ${generateCustomAdvice(weaknesses)}
-        </div>
-      `;
-      resultDiv.style.display = 'block';
-    };
-
-    function analyzeWeaknesses(rounds) {
-      const weaknesses = [];
-      const analysis = analyzeAllRounds(rounds);
-      const holeAvg = analyzeHoleAverages(rounds);
-
-      // 1. 퍼팅 분석
-      if (analysis.avgPutts > 2.0) {
-        const current = `${analysis.avgPutts}개/홀 (${Math.round(analysis.avgPutts * 18)}개)`;
-        const target = '2.0개/홀 (36개)';
-        const effect = `-${Math.round((analysis.avgPutts - 2.0) * 18)}타`;
-        weaknesses.push({
-          name: '퍼팅',
-          priority: 'high',
-          current,
-          target,
-          effect,
-          advice: '3퍼팅을 줄이고 1m 이내 퍼팅 성공률을 높이세요. 그린 리딩 연습도 필요합니다.'
-        });
-      }
-
-      // 2. Par별 평균
-      const parDiffs = [
-        { name: 'Par 3', diff: parseFloat(holeAvg.par3Diff), count: 4 },
-        { name: 'Par 4', diff: parseFloat(holeAvg.par4Diff), count: 10 },
-        { name: 'Par 5', diff: parseFloat(holeAvg.par5Diff), count: 4 }
-      ];
-      
-      parDiffs.sort((a, b) => b.diff - a.diff);
-      
-      if (parDiffs[0].diff > 1.2) {
-        const current = `${(3 + parDiffs[0].diff).toFixed(1)}타`;
-        const target = `${(3 + 1.0).toFixed(1)}타 (보기 플레이)`;
-        const effect = `-${Math.round((parDiffs[0].diff - 1.0) * parDiffs[0].count)}타`;
-        weaknesses.push({
-          name: `${parDiffs[0].name} 홀`,
-          priority: parDiffs[0].diff > 1.5 ? 'high' : 'medium',
-          current,
-          target,
-          effect,
-          advice: parDiffs[0].name === 'Par 4' 
-            ? '티샷 정확도와 세컨샷 안정성을 개선하세요. 보기 플레이를 목표로 하면 스코어가 줄어듭니다.'
-            : '전략적인 클럽 선택과 안정적인 플레이에 집중하세요.'
-        });
-      }
-
-      // 3. 페어웨이 안착률
-      if (analysis.fairwayHitRate < 65) {
-        weaknesses.push({
-          name: '티샷 정확도',
-          priority: 'medium',
-          current: `${analysis.fairwayHitRate}%`,
-          target: '70%',
-          effect: '-2~3타 (추정)',
-          advice: '방향성을 우선하고 거리는 차선으로 두세요. 필요시 드라이버 대신 3우드를 고려하세요.'
-        });
-      }
-
-      // 4. GIR
-      if (analysis.girRate < 40) {
-        weaknesses.push({
-          name: '그린 적중률 (GIR)',
-          priority: 'medium',
-          current: `${analysis.girRate}%`,
-          target: '45%',
-          effect: '-1~2타 (추정)',
-          advice: '클럽 선택을 신중하게 하고, 그린 중앙을 노리세요. 거리 정확도가 핵심입니다.'
-        });
-      }
-
-      return weaknesses.slice(0, 4); // 최대 4개
-    }
-
-    function analyzeClubUsageStats(rounds) {
-      const clubStats = {};
-
-      rounds.forEach(round => {
-        round.holes.forEach(hole => {
-          if (!hole.shots) return;
-
-          hole.shots.forEach(shot => {
-            // 리커버리샷은 클럽 사용 통계에서 제외
-            if (shot.isRecovery) return;
-            
-            const clubId = shot.club;
-            if (!clubId) return;
-
-            if (!clubStats[clubId]) {
-              clubStats[clubId] = { count: 0, onGreen: 0 };
-            }
-
-            clubStats[clubId].count++;
-            if (shot.result.onGreen) clubStats[clubId].onGreen++;
-          });
-        });
-      });
-
-      const mostUsed = CLUBS.map(club => ({
-        name: club.name,
-        id: club.id,
-        count: clubStats[club.id]?.count || 0
-      }))
-      .filter(c => c.count > 0)
-      .sort((a, b) => b.count - a.count);
-
-      const mostAccurate = CLUBS.map(club => {
-        const stats = clubStats[club.id];
-        if (!stats || stats.count < 5) return null; // 최소 5회 이상 사용
-        
-        const rate = Math.round((stats.onGreen / stats.count) * 100);
-        return {
-          name: club.name,
-          rate,
-          onGreen: stats.onGreen,
-          total: stats.count
-        };
-      })
-      .filter(c => c !== null)
-      .sort((a, b) => b.rate - a.rate);
-
-      return { mostUsed, mostAccurate };
-    }
-
-    function generateCustomAdvice(weaknesses) {
-      if (weaknesses.length === 0) {
-        return '✅ 전반적으로 안정적인 플레이를 하고 있습니다! 현재 수준을 유지하면서 세부적인 부분을 개선해 나가세요.';
-      }
-
-      let advice = '';
-      const highPriority = weaknesses.filter(w => w.priority === 'high');
-      
-      if (highPriority.length > 0) {
-        advice += `▸ <b>${highPriority[0].name}</b>에 집중하세요. 이 부분만 개선해도 ${highPriority[0].effect}의 효과가 있습니다.<br><br>`;
-      }
-
-      if (weaknesses.length > 1) {
-        advice += `▸ 우선순위: ${weaknesses.map((w, i) => `${i+1}. ${w.name}`).join(' → ')}<br><br>`;
-      }
-
-      advice += '▸ 한 번에 하나씩 집중적으로 개선하는 것이 효과적입니다.';
-
-      return advice;
-    }
-
-    function analyzeAllRounds(rounds) {
-      let totalGross = 0;
-      let bestGross = 999;
-      let recentGross = [];
-      
-      let totalFairwayHits = 0, totalTeeShots = 0;
-      let totalGIR = 0, totalApproaches = 0;
-      let totalPutts = 0, totalHoles = 0;
-
-      rounds.forEach((round, idx) => {
-        const s = calcRoundScores(round);
-        totalGross += s.gross;
-        if (s.gross < bestGross) bestGross = s.gross;
-        
-        if (idx >= rounds.length - 5) {
-          recentGross.push(s.gross);
-        }
-
-        round.holes.forEach(hole => {
-          totalHoles++;
-          totalPutts += (hole.putting?.putts) || 0;
-
-          if (hole.shots) {
-            // 티샷 분석 (리커버리샷 제외)
-            hole.shots.forEach(shot => {
-              if (shot.isRecovery) return;
-              
-              if (shot.type === 'tee') {
-                totalTeeShots++;
-                if (shot.result.landing === 'fairway') totalFairwayHits++;
-              }
-            });
-
-            // GIR 계산: par - 2 이하의 샷 수에 온그린 성공 여부
-            const shotsToGreen = hole.shots.findIndex(s => !s.isRecovery && s.result.onGreen);
-            if (shotsToGreen !== -1) {
-              // 리커버리샷 제외한 실제 샷 번호 계산
-              let realShotCount = 0;
-              for (let si = 0; si <= shotsToGreen; si++) {
-                if (!hole.shots[si].isRecovery) realShotCount++;
-              }
-              if (realShotCount <= (hole.par || 4) - 2) totalGIR++;
-            }
-            totalApproaches++; // 홀 단위 GIR 계산용 (분모)
-          }
-        });
-      });
-
-      const avgGross = Math.round(totalGross / rounds.length);
-      const recent5Avg = recentGross.length > 0 
-        ? Math.round(recentGross.reduce((a,b) => a+b, 0) / recentGross.length)
-        : avgGross;
-      
-      const fairwayRate = totalTeeShots > 0 ? Math.round((totalFairwayHits / totalTeeShots) * 100) : 0;
-      const girRate = totalApproaches > 0 ? Math.round((totalGIR / totalApproaches) * 100) : 0;
-      const avgPutts = totalHoles > 0 ? (totalPutts / totalHoles).toFixed(1) : 0;
-
-      let improvement = '';
-      if (rounds.length >= 5) {
-        const firstFive = rounds.slice(0, 5);
-        const firstAvg = firstFive.reduce((sum, r) => sum + calcRoundScores(r).gross, 0) / 5;
-        const diff = avgGross - firstAvg;
-        
-        if (diff < -3) {
-          improvement = `🎉 초기 대비 평균 ${Math.abs(diff).toFixed(1)}타 향상! 꾸준히 발전하고 있습니다.`;
-        } else if (diff > 3) {
-          improvement = `초기 대비 평균 ${diff.toFixed(1)}타 상승했습니다. 기본기 점검이 필요할 수 있습니다.`;
-        } else {
-          improvement = `일정한 실력을 유지하고 있습니다. 특정 약점을 집중 개선하면 돌파구를 찾을 수 있습니다.`;
-        }
-      } else {
-        improvement = `라운드가 더 쌓이면 실력 향상 추세를 분석할 수 있습니다. (현재 ${rounds.length}회)`;
-      }
-
-      return {
-        avgGross,
-        bestGross,
-        recent5Avg,
-        fairwayHitRate: fairwayRate,
-        girRate,
-        avgPutts,
-        improvementTrend: improvement
-      };
-    }
-
-    function analyzeClubAccuracy() {
-      const clubStats = {};
-
-      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
-      rounds.forEach(round => {
-        round.holes.forEach(hole => {
-          if (!hole.shots) return;
-
-          hole.shots.forEach(shot => {
-            // 리커버리샷은 클럽 분석에서 제외
-            if (shot.isRecovery) return;
-            
-            const clubId = shot.club;
-            if (!clubId) return;
-
-            if (!clubStats[clubId]) {
-              clubStats[clubId] = {
-                count: 0,
-                onGreen: 0,
-                distances: [],
-                short: 0,
-                long: 0
-              };
-            }
-
-            clubStats[clubId].count++;
-            if (shot.result.onGreen) clubStats[clubId].onGreen++;
-            
-            if (shot.distance) {
-              const dist = parseInt(shot.distance);
-              if (!isNaN(dist)) clubStats[clubId].distances.push(dist);
-            }
-
-            if (shot.result.direction) {
-              if (shot.result.direction.includes('short')) clubStats[clubId].short++;
-              if (shot.result.direction.includes('long')) clubStats[clubId].long++;
-            }
-          });
-        });
-      });
-
-      const result = [];
-      CLUBS.forEach(club => {
-        const stats = clubStats[club.id];
-        if (!stats || stats.count === 0) return;
-
-        const avgDist = stats.distances.length > 0
-          ? Math.round(stats.distances.reduce((a,b) => a+b, 0) / stats.distances.length)
-          : null;
-
-        const onGreenRate = Math.round((stats.onGreen / stats.count) * 100);
-
-        let tendency = '';
-        if (stats.short > stats.long) {
-          tendency = `⚠️ ${Math.round((stats.short/stats.count)*100)}%의 샷이 짧았습니다.`;
-        } else if (stats.long > stats.short) {
-          tendency = `${Math.round((stats.long/stats.count)*100)}%의 샷이 길었습니다.`;
-        }
-
-        result.push({
-          name: club.name,
-          count: stats.count,
-          onGreen: stats.onGreen,
-          onGreenRate,
-          avgDistance: avgDist,
-          shortCount: stats.short,
-          longCount: stats.long,
-          tendency
-        });
-      });
-
-      return result.sort((a, b) => b.count - a.count);
-    }
 
 
     // ========================================
@@ -4600,8 +3509,8 @@ const holeIndex = appState.currentHole - 1;
             return `
               <div class="course-btn" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                 <div class="course-info">
-                  <div class="course-name">${escHtml(course.name)}</div>
-                  <div class="course-details">${escHtml(course.location) || '위치 미등록'} • ${course.holes}홀 • Par ${totalPar}</div>
+                  <div class="course-name">${course.name}</div>
+                  <div class="course-details">${course.location || '위치 미등록'} • ${course.holes}홀 • Par ${totalPar}</div>
                 </div>
                 <div class="btn-group">
                   <button class="edit-btn" onclick="openCourseEdit('${course.id}')">수정</button>
@@ -4618,65 +3527,23 @@ const holeIndex = appState.currentHole - 1;
 
         <div class="section">
           <h2 class="section-title">골프백 구성 & 거리 정보</h2>
-          <p style="margin-bottom: 10px; opacity: 0.6; font-size: 12px;">
-            클럽 이름과 거리(m)를 설정하세요. 클럽 추천 및 샷 입력에 사용됩니다.
+          <p style="margin-bottom: 8px; opacity: 0.6; font-size: 12px;">
+            📘 기본값 &nbsp; 📗 라운드 기록에서 학습된 거리
           </p>
-
-          <div style="margin-bottom: 8px; display: flex; gap: 12px; font-size: 11px; opacity: 0.7;">
-            <span><span style="display:inline-block;width:10px;height:10px;background:#e53e3e;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 사용자 설정</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#38a169;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 라운드 학습</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#ecc94b;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 기본값</span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; padding: 4px 8px; margin-bottom: 2px;">
-            <div></div>
-            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">클럽</div>
-            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">캐리</div>
-            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">토탈</div>
-            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">맥스</div>
-          </div>
-
-          <div id="club-bag-list" style="display: flex; flex-direction: column; gap: 5px;">
-            ${CLUBS.map((club, idx) => {
+          <div class="club-list">
+            ${CLUBS.map(club => {
               const dist = CLUB_DISTANCES[club.id];
-              const isCustom = dist && dist.customSet;
-              const isLearned = dist && dist.learned && !isCustom;
-              const sqColor = isCustom ? '#e53e3e' : (isLearned ? '#38a169' : '#ecc94b');
-              const carry = dist && dist.carry > 0 ? dist.carry : '';
-              const total = dist && dist.total > 0 ? dist.total : '';
-              const max = dist && dist.max > 0 ? dist.max : '';
+              const isLearned = dist && dist.learned;
+              const countText = isLearned && dist.count ? ` (${dist.count}회 기록)` : '';
+              const icon = isLearned ? '📗' : '📘';
+              const distText = dist && dist.total > 0 ? ` ${dist.total}m` : '';
               return `
-                <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; align-items: center; padding: 4px 8px; background: var(--sand); border-radius: 8px;">
-                  <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;"></span>
-                  <input type="text" id="club-name-${idx}"
-                    value="${escHtml(club.name)}"
-                    placeholder="클럽명"
-                    style="padding: 5px 4px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; font-weight: 600; background: white; text-align: center; width: 100%; box-sizing: border-box;">
-                  <input type="number" id="club-carry-${idx}"
-                    value="${carry}" placeholder="-"
-                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
-                    inputmode="numeric" min="0" max="400">
-                  <input type="number" id="club-total-${idx}"
-                    value="${total}" placeholder="-"
-                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
-                    inputmode="numeric" min="0" max="400">
-                  <input type="number" id="club-max-${idx}"
-                    value="${max}" placeholder="-"
-                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
-                    inputmode="numeric" min="0" max="400">
-                </div>
+                <div class="club-item">${icon} ${club.name}${distText}${countText}</div>
               `;
             }).join('')}
           </div>
-
-          <button class="secondary-btn" style="margin-top: 10px;" onclick="addClubToBag()">
-            ➕ 클럽 추가
-          </button>
-          <button class="primary-btn" style="margin-top: 10px;" onclick="saveClubBagFromUI()">
-            💾 골프백 저장
-          </button>
-          <button class="secondary-btn" style="margin-top: 8px;" onclick="resetClubBag()">
-            🔄 기본 골프백으로 초기화
+          <button class="secondary-btn" style="margin-top: 10px;" onclick="resetClubDistances()">
+            🔄 기본 거리로 초기화
           </button>
         </div>
 
@@ -4709,68 +3576,12 @@ const holeIndex = appState.currentHole - 1;
     };
 
     // ========================================
-    // GOLF BAG MANAGEMENT (클럽 추가/이름변경/거리설정)
+    // CLUB DISTANCE RESET
     // ========================================
-    window.addClubToBag = function() {
-      const newId = 'club_' + Date.now();
-      CLUBS.push({ id: newId, name: '' });
-      render();
-      setTimeout(() => {
-        const nameInput = document.getElementById('club-name-' + (CLUBS.length - 1));
-        if (nameInput) nameInput.focus();
-      }, 50);
-    };
-
-    window.saveClubBagFromUI = function() {
-      const newClubs = [];
-      const customDistances = {};
-      const len = CLUBS.length;
-
-      for (let i = 0; i < len; i++) {
-        const nameInput = document.getElementById('club-name-' + i);
-        const carryInput = document.getElementById('club-carry-' + i);
-        const totalInput = document.getElementById('club-total-' + i);
-        const maxInput = document.getElementById('club-max-' + i);
-
-        const name = nameInput ? nameInput.value.trim() : '';
-        if (!name) continue; // 이름 없으면 건너뜀
-
-        const carry = carryInput ? parseInt(carryInput.value, 10) : 0;
-        const total = totalInput ? parseInt(totalInput.value, 10) : 0;
-        const max = maxInput ? parseInt(maxInput.value, 10) : 0;
-
-        const id = CLUBS[i] ? CLUBS[i].id : ('club_' + Date.now() + '_' + i);
-        newClubs.push({ id, name });
-
-        if ((Number.isFinite(carry) && carry > 0) || (Number.isFinite(total) && total > 0)) {
-          const t = total || carry || 0;
-          const c = carry || Math.round(t * 0.92);
-          const m = max || Math.round(t * 1.05);
-          customDistances[id] = { carry: c, total: t, max: m, customSet: true };
-          CLUB_DISTANCES[id] = { carry: c, total: t, max: m, customSet: true };
-        }
-      }
-
-      if (newClubs.length === 0) {
-        alert('최소 1개 이상의 클럽이 필요합니다.\n클럽 이름을 입력해 주세요.');
-        return;
-      }
-
-      CLUBS = newClubs;
-      saveCustomClubs();
-      saveCustomClubDistances(customDistances);
-      alert('✅ 골프백이 저장되었습니다.');
-      render();
-    };
-
-    window.resetClubBag = function() {
-      if (confirm('골프백을 기본 구성으로 초기화하시겠습니까?\n\n사용자가 추가/수정한 클럽과 거리가 모두 삭제됩니다.')) {
-        try { localStorage.removeItem(CUSTOM_CLUBS_KEY); } catch(_) {}
-        try { localStorage.removeItem(CUSTOM_CLUB_DISTANCES_KEY); } catch(_) {}
-        CLUBS = JSON.parse(JSON.stringify(DEFAULT_CLUBS));
+    window.resetClubDistances = function() {
+      if (confirm('클럽 거리를 기본값으로 초기화하시겠습니까?\n\n라운드를 더 기록하면 다시 학습됩니다.')) {
         CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
-        updateClubDistancesFromRounds();
-        alert('✅ 골프백이 기본 구성으로 초기화되었습니다.');
+        alert('✅ 클럽 거리가 기본값으로 초기화되었습니다.');
         render();
       }
     };
@@ -4802,22 +3613,16 @@ const holeIndex = appState.currentHole - 1;
     // Override render for page routing
     const originalRender = render;
     render = function() {
-      try {
-        if ((appState.currentPage === 10 || appState.currentPage === 12) && !appState.activeRound) {
-          const app = document.getElementById('app');
-          if (!app) return;
-          app.innerHTML = '';
-          const container = document.createElement('div');
-          container.className = 'page-container';
-          renderByPage(container);
-          app.appendChild(container);
-          if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
-        } else {
-          originalRender();
-        }
-      } catch (e) {
-        console.error('Render (page routing) failed:', e);
-        showErrorBanner('렌더링 오류: ' + (e.message || '알 수 없는 오류'));
+      if ((appState.currentPage === 10 || appState.currentPage === 12) && !appState.activeRound) {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'page-container';
+        renderByPage(container);
+        app.appendChild(container);
+        if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
+      } else {
+        originalRender();
       }
     };
 
@@ -5229,7 +4034,6 @@ function fillCourseFromAI(data) {
     // ========================================
     window.addEventListener('DOMContentLoaded', () => {
       try { loadData(); } catch (e) { console.error('Initial loadData failed:', e); }
-      try { loadCustomClubs(); } catch (e) { console.error('Custom clubs load failed:', e); }
       try { updateClubDistancesFromRounds(); } catch (e) { console.error('Club distance learning failed:', e); }
       try { render(); } catch (e) { console.error('Initial render failed:', e); }
     });
@@ -5237,3 +4041,7 @@ function fillCourseFromAI(data) {
 </script>
 </body>
 </html>
+
+
+
+
