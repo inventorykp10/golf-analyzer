@@ -1,0 +1,5535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2d5016">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
+  <title>Golf Round Analyzer ⛳ v10</title>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --green-primary: #2d5016;
+      --green-secondary: #4a7c23;
+      --green-light: #7fb069;
+      --cream: #fffbf3;
+      --sand: #e5dcc5;
+      --brown: #5c4a3a;
+      --red: #c44536;
+      --blue: #4a90e2;
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --nav-h: 60px; /* bottom nav 높이 */
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(to bottom, var(--cream) 0%, var(--sand) 100%);
+      color: var(--brown);
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #app {
+      max-width: 600px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ========== PAGE CONTAINER ========== */
+    .page-container {
+      height: calc(100vh - var(--nav-h));
+      display: flex;
+      flex-direction: column;
+      padding: 2vh 4vw;
+      overflow: hidden; /* 기본: 스크롤 없음 */
+    }
+
+    /* 스크롤이 필요한 페이지용 */
+    .page-container.scrollable {
+      overflow-y: auto;
+      padding-bottom: 2vh;
+    }
+
+    /* ========== BACK BUTTON ========== */
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1.5px solid var(--green-light);
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      font-size: 18px;
+      color: var(--green-primary);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+
+    .back-button:hover {
+      background: var(--green-light);
+      color: white;
+      transform: translateX(-2px);
+    }
+
+    .back-button:active {
+      transform: scale(0.92);
+    }
+
+    /* ========== PAGE TITLE ========== */
+    .page-title {
+      font-size: clamp(20px, 3vh, 28px);
+      font-weight: 700;
+      color: var(--green-primary);
+      margin-bottom: 1.5vh;
+      font-family: system-ui, -apple-system, 
+                   "Noto Sans KR", "Malgun Gothic", 
+                   "Segoe UI", Arial, sans-serif;
+      letter-spacing: 1px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* ========== SECTION ========== */
+    .section {
+      background: white;
+      padding: clamp(12px, 2vh, 20px) clamp(14px, 3vw, 20px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5vh;
+      flex-shrink: 0;
+    }
+
+    /* 홈 페이지의 메인 섹션 (flex grow로 남은 공간 채움) */
+    .section.grow {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+    }
+
+    .section-title {
+      font-size: clamp(14px, 2vh, 18px);
+      font-weight: 600;
+      color: var(--green-primary);
+      margin-bottom: 1vh;
+      flex-shrink: 0;
+    }
+
+    /* ========== SHOT HEADER ========== */
+    .shot-header {
+      background: white;
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 2vw, 16px);
+      border-radius: 12px;
+      margin-bottom: 1vh;
+      box-shadow: var(--shadow);
+      flex-shrink: 0;
+    }
+
+    /* 통합 샷 헤더 */
+    .shot-header-unified {
+      background: white;
+      padding: clamp(12px, 2vh, 18px) clamp(14px, 2.5vw, 20px);
+      border-radius: 16px;
+      margin-bottom: 1.5vh;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--green-light);
+      flex-shrink: 0;
+    }
+
+    .shot-header-row-1,
+    .shot-header-row-2,
+    .shot-header-row-3 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .shot-header-row-1 {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .shot-header-row-2 {
+      margin-bottom: 10px;
+    }
+
+    .shot-header-row-3 {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #f5f5f5;
+    }
+
+    .shot-header-left {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex: 1;
+    }
+
+    .shot-header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .score-item {
+      font-size: 14px;
+      color: var(--brown);
+      white-space: nowrap;
+    }
+
+    .score-item b {
+      font-size: 16px;
+      color: var(--green-primary);
+      margin-left: 4px;
+    }
+
+    .index-badge-inline,
+    .shot-allowance-badge-inline,
+    .score-badge-inline {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .index-badge-inline {
+      background: #dfe8d6;
+      color: var(--green-primary);
+    }
+
+    .shot-allowance-badge-inline {
+      background: #fff2cc;
+      color: var(--brown);
+    }
+
+    .score-badge-inline.gross {
+      background: #e8f4f8;
+      color: #2c5f7a;
+    }
+
+    .score-badge-inline.nett {
+      background: #f0e8f4;
+      color: #6b4c7a;
+    }
+
+    .score-badge-inline.stb {
+      background: #fef3e8;
+      color: #b8730d;
+    }
+
+    .shot-info {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .hole-num {
+      font-size: clamp(18px, 3vh, 20px);
+      font-weight: 700;
+      color: var(--green-primary);
+    }
+
+    .tee-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--blue);
+      color: white;
+    }
+
+    .tee-badge.white {
+      background: #888;
+    }
+
+    .distance-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--sand);
+      color: var(--brown);
+    }
+
+    
+    /* 홀 정보 배지 추가 (Index / Shot +N) */
+    .index-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: #dfe8d6;
+      color: var(--green-primary);
+      font-weight: 600;
+    }
+
+    .shot-allowance-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: #fff2cc;
+      color: var(--brown);
+      font-weight: 700;
+    }
+
+    /* 홀 정보(shot-header) 폰트 통일 */
+    .shot-header, .shot-header * {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .shot-number {
+      font-size: clamp(16px, 2.5vh, 19px);
+      font-weight: 700;
+      color: var(--green-primary);
+      margin-top: 2px;
+    }
+
+    /* ========== PREVIOUS SHOTS ========== */
+    .previous-shots {
+      background: var(--sand);
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
+      border-radius: 8px;
+      margin-bottom: 1vh;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .prev-shot { margin-bottom: 3px; opacity: 0.8; }
+    .prev-shot:last-child { margin-bottom: 0; }
+
+    /* ========== INPUT SECTIONS ========== */
+    .input-section {
+      margin-bottom: clamp(6px, 1.2vh, 14px);
+    }
+
+    .input-section label {
+      display: block;
+      font-size: clamp(13px, 1.8vh, 15px);
+      font-weight: 600;
+      color: var(--brown);
+      margin-bottom: clamp(4px, 0.7vh, 8px);
+    }
+
+    .optional-label {
+      font-size: 12px;
+      font-weight: 400;
+      opacity: 0.6;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: clamp(8px, 1.3vh, 12px);
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--green-primary);
+    }
+
+    /* 거리 입력 화살표 제거 */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] { -moz-appearance: textfield; }
+
+    .select-input {
+      width: 100%;
+      padding: clamp(6px, 1vh, 10px);
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: white;
+      line-height: 1.3;
+    }
+    
+    .select-input option {
+      padding: 4px 8px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    /* ========== BUTTONS ========== */
+    .primary-btn {
+      width: 100%;
+      padding: clamp(12px, 2vh, 18px);
+      background: var(--green-primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: clamp(15px, 2vh, 17px);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .primary-btn:hover { background: var(--green-secondary); }
+    .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .secondary-btn {
+      width: 100%;
+      padding: clamp(8px, 1.2vh, 12px);
+      background: white;
+      color: var(--green-primary);
+      border: 2px solid var(--green-primary);
+      border-radius: 12px;
+      font-size: clamp(14px, 1.9vh, 16px);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .secondary-btn:hover {
+      background: var(--green-light);
+      color: white;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(6px, 1vh, 10px);
+    }
+
+    .button-group-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(6px, 1vh, 10px);
+    }
+
+    .choice-btn {
+      padding: clamp(8px, 1.3vh, 12px) 4px;
+      background: white;
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .choice-btn:hover { border-color: var(--green-light); }
+
+    .choice-btn.selected {
+      background: var(--green-primary);
+      color: white;
+      border-color: var(--green-primary);
+    }
+
+    /* ========== CHECKBOX GROUP ========== */
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(5px, 0.8vh, 8px);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: clamp(6px, 1vh, 10px);
+      background: white;
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+
+    .checkbox-label:hover { border-color: var(--green-light); }
+
+    .checkbox-label.selected {
+      background: var(--green-primary);
+      color: white;
+      border-color: var(--green-primary);
+    }
+
+    .checkbox-label input[type="checkbox"] { display: none; }
+
+    /* ========== INFO BOXES ========== */
+    .club-recommendation {
+      background: #e3f2fd;
+      border-left: 4px solid var(--blue);
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
+      margin-bottom: 1vh;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid var(--blue);
+      padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 12px);
+      margin-bottom: 1vh;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* 홀 정보 카드 */
+    .hole-info-card {
+      background: white;
+      padding: clamp(14px, 2.5vh, 20px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5vh;
+      border: 2px solid var(--green-light);
+    }
+
+    .hole-info-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--sand);
+    }
+
+    .hole-info-main {
+      font-size: clamp(18px, 2.8vh, 24px);
+      font-weight: 700;
+      color: var(--green-primary);
+    }
+
+    .hole-info-tee {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--blue);
+      color: white;
+    }
+
+    .hole-info-tee.white {
+      background: #888;
+    }
+
+    .hole-info-details {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hole-info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--cream);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .hole-info-item.index {
+      background: #dfe8d6;
+      color: var(--green-primary);
+    }
+
+    .hole-info-item.shot {
+      background: #fff2cc;
+      color: var(--brown);
+    }
+
+
+    /* ========== BOTTOM NAVIGATION ========== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 600px;
+      margin: 0 auto;
+      height: var(--nav-h);
+      background: white;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--sand);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+      z-index: 1000;
+    }
+
+    .nav-btn {
+      border: none;
+      background: transparent;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--brown);
+      opacity: 0.6;
+    }
+
+    .nav-btn.active { color: var(--green-primary); opacity: 1; }
+    .nav-btn-icon { font-size: 22px; }
+    .nav-btn-label { font-size: 11px; font-weight: 500; }
+
+    /* ========== STATS ========== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(8px, 1.5vh, 14px);
+      flex: 1;
+      min-height: 0;
+    }
+
+    .stat-card {
+      background: white;
+      padding: clamp(10px, 1.8vh, 18px) 8px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stat-icon { font-size: clamp(22px, 3.5vh, 30px); margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: var(--brown); opacity: 0.7; margin-bottom: 4px; }
+    .stat-value { font-size: clamp(20px, 3vh, 26px); font-weight: 700; color: var(--green-primary); }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+    }
+
+    .empty-state p { margin-bottom: 8px; }
+
+    /* ========== ROUNDS LIST ========== */
+    .rounds-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(8px, 1.2vh, 12px);
+    }
+
+    .round-card {
+      background: white;
+      padding: clamp(10px, 1.5vh, 16px);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .round-header-info h3 { font-size: 15px; color: var(--green-primary); margin-bottom: 3px; }
+    .round-date { font-size: 12px; opacity: 0.6; }
+    .round-score-info { text-align: right; }
+    .total-score { font-size: clamp(22px, 3vh, 28px); font-weight: 700; color: var(--green-primary); }
+
+    /* ========== CLUB LIST ========== */
+    .club-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(5px, 0.8vh, 8px);
+    }
+
+    .club-item {
+      padding: clamp(6px, 1vh, 10px) 8px;
+      background: var(--sand);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* ========== MODAL ========== */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: white;
+      padding: 16px;
+      border-radius: 16px;
+      max-width: 480px;
+      width: 94%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title { font-size: 20px; font-weight: 700; color: var(--green-primary); }
+
+    .close-btn {
+      font-size: 26px;
+      font-weight: bold;
+      color: var(--brown);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    /* ========== COURSE SELECTION ========== */
+    .course-btn {
+      width: 100%;
+      padding: clamp(10px, 1.5vh, 16px);
+      background: white;
+      border: 2px solid var(--sand);
+      border-radius: 12px;
+      text-align: left;
+      cursor: pointer;
+      margin-bottom: clamp(6px, 1vh, 12px);
+      transition: all 0.2s;
+    }
+
+    .course-btn:hover { border-color: var(--green-primary); }
+    .course-name { font-size: 15px; font-weight: 600; color: var(--green-primary); margin-bottom: 3px; }
+    .course-details { font-size: 13px; opacity: 0.7; }
+
+    /* ========== COURSE MANAGEMENT BUTTONS ========== */
+    .btn-group { display: flex; gap: 6px; }
+
+    .edit-btn, .delete-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .edit-btn { background: var(--blue); color: white; }
+    .edit-btn:hover { background: var(--green-secondary); }
+    .delete-btn { background: var(--red); color: white; }
+    .delete-btn:hover { background: #a03028; }
+    .course-info { flex: 1; }
+
+    /* ========== ROUND CONTROL ========== */
+    .round-control-panel {
+      background: var(--sand);
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 2vw, 16px);
+      border-radius: 12px;
+      margin-bottom: 1vh;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .round-info { font-size: 14px; opacity: 0.8; }
+
+    .finish-round-btn {
+      padding: 8px 14px;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ========== COURSE REGISTRATION (modal) ========== */
+    .hole-row {
+      display: grid;
+      grid-template-columns: 30px 55px 55px 80px 80px;
+      gap: 5px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .hole-number { text-align: center; font-weight: 600; color: var(--green-primary); font-size: 13px; }
+
+    .hole-row select,
+    .hole-row input[type="number"] {
+      padding: 6px 3px;
+      border: 2px solid var(--sand);
+      border-radius: 6px;
+      font-size: 13px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .par-summary {
+      background: white;
+      padding: clamp(14px, 2.5vh, 20px);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      border: 2px solid var(--sand);
+    }
+
+    .par-summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
+    .par-summary-row:last-child { margin-bottom: 0; }
+    .par-summary-row.total { font-weight: 600; padding-top: 5px; border-top: 1px solid var(--brown); opacity: 0.3; }
+
+    .section-divider { border-top: 2px solid var(--sand); margin: 12px 0; padding-top: 10px; }
+
+    .subsection-title { font-size: 14px; font-weight: 600; color: var(--green-primary); margin-bottom: 10px; }
+
+    .holes-header {
+      display: grid;
+      grid-template-columns: 30px 55px 55px 80px 80px;
+      gap: 5px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--green-primary);
+      text-align: center;
+    }
+
+    /* ========== HOME QUICK ACTIONS (2열) ========== */
+    .home-quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(6px, 1vh, 10px);
+    }
+
+    .home-quick-actions .secondary-btn { margin-bottom: 0; }
+
+    /* ========== SCORECARD UPLOAD OVERLAY ========== */
+    .upload-loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      color: white;
+      font-size: 18px;
+      gap: 20px;
+    }
+    .upload-loading-overlay.active { display: flex; }
+    .upload-spinner {
+      width: 56px; height: 56px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: #7fb069;
+      border-radius: 50%;
+      animation: spinLoader 0.8s linear infinite;
+    }
+    @keyframes spinLoader { to { transform: rotate(360deg); } }
+    .upload-loading-text { text-align: center; }
+    .upload-loading-text p { margin: 4px 0; }
+    .upload-loading-text .sub { opacity: 0.6; font-size: 14px; }   
+  /* 라운드 방식 선택 버튼 간격 */
+  .round-type-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  
+    .hole-row.totals-row {
+      background: rgba(255,255,255,0.6);
+      border: 2px solid var(--sand);
+      border-radius: 8px;
+      padding: 6px 6px;
+      margin: 10px 0 12px;
+      font-weight: 700;
+    }
+    .hole-row.totals-row .totals-label {
+      font-size: 12px;
+      color: var(--green-primary);
+      text-align: center;
+    }
+    .hole-row.totals-row .totals-cell {
+      font-size: 12px;
+      text-align: center;
+      color: var(--brown);
+    }
+    
+    /* totals-row variants to match desired layout */
+    .hole-row.totals-row.total {
+      background: var(--sand);
+      border-color: rgba(92,74,58,0.25);
+    }
+.input-error {
+      border-color: var(--red) !important;
+      background: #fff2f0 !important;
+    }
+    .validation-msg {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(196,69,54,0.10);
+      border: 1px solid rgba(196,69,54,0.25);
+      color: var(--red);
+      font-size: 13px;
+      line-height: 1.3;
+      display: none;
+    }
+
+  
+    /* ========== HOME (NEW TILE LAYOUT) ========== */
+    .home-shell{
+      background: rgba(255,255,255,0.65);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+      /* 홈은 하단 네비가 숨겨지므로, 화면에 과하게 커지지 않도록 */
+      min-height: unset;
+      justify-content: flex-start;
+    }
+.home-brand{
+      text-align:center;
+      padding-top: 6px;
+    }
+    .home-brand-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+    }
+    .home-flag{
+      font-size: 28px;
+      line-height: 1;
+    }
+    .home-brand-title{
+      font-family: 'Bebas Neue', cursive;
+      font-size: 34px;
+      letter-spacing: 1px;
+      color: var(--green-primary);
+    }
+    .home-start-btn{
+      width:100%;
+      border:none;
+      background: var(--green-primary);
+      color:white;
+      border-radius: 18px;
+      padding: 28px 14px;
+      font-size: 24px;
+      font-weight: 700;
+      cursor:pointer;
+      box-shadow: var(--shadow);
+    }
+.home-start-btn:hover{ background: var(--green-secondary); }
+    .home-tiles{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 2px;
+    }
+.home-tile{
+      background:white;
+      border: 3px solid var(--green-primary);
+      border-radius: 18px;
+      padding: 14px 8px;
+      min-height: 118px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      cursor:pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+.home-tile.active{ background: rgba(127,176,105,0.10); }
+    .home-tile.placeholder{
+      border-color: rgba(0,0,0,0.10);
+      background: transparent;
+      box-shadow: none;
+      cursor: default;
+    }
+    .tile-icon{ font-size: 34px; line-height: 1; }
+.tile-label{
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green-primary);
+    }
+.home-version{
+      text-align:center;
+      opacity:0.55;
+      font-size: 14px;
+      margin-top: auto;
+      padding: 10px 0 4px;
+    }
+    .home-resume{
+      background: rgba(229,220,197,0.55);
+      border: 2px solid var(--sand);
+      border-radius: 14px;
+      padding: 12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .home-resume-text{ font-size: 14px; color: var(--brown); }
+    .home-resume-btn{
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: none;
+      background: var(--green-primary);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .home-resume-btn:hover{ background: var(--green-secondary); }
+
+    @media (max-width: 380px){
+      .home-start-btn{ padding: 24px 12px; font-size: 22px; }
+      .home-tile{ min-height: 110px; padding: 12px 8px; }
+      .tile-icon{ font-size: 32px; }
+      .tile-label{ font-size: 17px; }
+    }
+
+/* ========================================
+   ROUND START PAGE (Layout like screenshot)
+   ======================================== */
+.roundstart-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.roundstart-flag{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transform: translateY(-1px);
+}
+.roundstart-shell{
+  justify-content:center;
+}
+.roundstart-inner{
+  width:100%;
+  max-width:520px;
+  margin:0 auto;
+  padding:26px 22px 28px;
+}
+.roundstart-label{
+  font-size:20px;
+  font-weight:800;
+  color:#21440f;
+  margin:6px 0 14px;
+}
+.roundstart-primary{
+  width:100%;
+  padding:22px 16px;
+  font-size:18px;
+  border-radius:22px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+}
+.scorecard-box{
+  margin-top:24px;
+  border:3px solid #111;
+  border-radius:20px;
+  padding:18px 16px 20px;
+  background:#fff;
+}
+.scorecard-box-title{
+  text-align:center;
+  font-size:22px;
+  font-weight:900;
+  color:#21440f;
+  margin:4px 0 18px;
+}
+.scorecard-box-help{
+  text-align:center;
+  font-size:13px;
+  font-weight:600;
+  opacity:0.75;
+  line-height:1.45;
+  margin:-10px 0 14px; /* 제목과 버튼 사이 간격 */
+}
+  .scorecard-btn-row{
+  display:flex;
+  gap:14px;
+}
+.scorecard-btn{
+  flex:1;
+  height:64px;
+  border-radius:18px;
+  border:2px solid rgba(0,0,0,0.12);
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+}
+.scorecard-btn .btn-ico{
+  margin-right:8px;
+}
+.scorecard-btn-dark{
+  background:#1f4b11;
+  color:#fff;
+}
+.scorecard-btn-light{
+  background:#5aa244;
+  color:#fff;
+}
+@media (max-width: 420px){
+  .roundstart-inner{ padding:22px 18px 24px; }
+  .scorecard-box-title{ font-size:20px; }
+  .scorecard-btn{ height:60px; font-size:17px; }
+}
+
+.help-list{
+  list-style: none;      /* 기본 불릿 제거 */
+  padding-left: 0;
+  margin: 8px 0 0;
+  text-align: left;      /* 전체 왼쪽 정렬 */
+}
+
+.help-list li{
+  position: relative;
+  padding-left: 22px;    /* ※ 자리 확보 */
+  margin-bottom: 8px;
+  line-height: 1.45;
+  text-align: left;      /* 줄바꿈 후에도 왼쪽 기준 */
+}
+
+.help-list li::before{
+  content: "※";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <input type="file" id="scorecard-upload" accept="image/*" style="display:none" onchange="handleScoreCardUpload(event)">
+  <input type="file" id="scorecard-camera" accept="image/*" capture="environment" style="display:none" onchange="handleScoreCardUpload(event)">
+  <input type="file" id="backup-restore-input" accept="application/json" style="display:none" onchange="handleBackupRestore(event)">
+  <div id="upload-loading" class="upload-loading-overlay">
+    <div class="upload-spinner"></div>
+    <div class="upload-loading-text">
+      <p style="font-size:22px;">🔍 스코어카드 분석 중...</p>
+      <p class="sub">잠깐만 기다려주세요</p>
+    </div>
+  </div>
+
+
+  <script>
+
+    // ========================================
+    // DEFAULT COURSES
+    // ========================================
+    const DEFAULT_COURSES = [
+      {
+        id: 'woodville-gc',
+        name: 'Woodville GC',
+        location: 'Woodville',
+        holes: 18,
+        par: [4, 3, 5, 4, 3, 5, 3, 4, 4, 4, 3, 4, 5, 5, 3, 4, 4, 5],
+
+        strokeIndex: [2, 18, 12, 13, 7, 15, 10, 11, 9, 1, 8, 4, 16, 6, 14, 3, 5, 17],
+
+        distances: {
+          blue: [379, 127, 457, 296, 165, 460, 122, 305, 322, 367, 166, 338, 423, 468, 133, 374, 333, 401],
+          white: [363, 114, 422, 268, 140, 440, 105, 294, 305, 340, 140, 321, 404, 450, 113, 358, 310, 385]
+        }
+      }
+    ];
+
+    // ========================================
+    // CLUB DATA & DISTANCES
+    // ========================================
+    // ========================================
+    // CLUB DATA & DISTANCES (with learning)
+    // ========================================
+    const DEFAULT_CLUB_DISTANCES = {
+      'driver': { carry: 204, total: 220, max: 230 },
+      '5wood': { carry: 182, total: 198, max: 210 },
+      '7wood': { carry: 170, total: 185, max: 195 },
+      '4iron': { carry: 165, total: 177, max: 185 },
+      '5iron': { carry: 156, total: 167, max: 175 },
+      '6iron': { carry: 147, total: 155, max: 165 },
+      '7iron': { carry: 137, total: 144, max: 155 },
+      '8iron': { carry: 127, total: 135, max: 145 },
+      '9iron': { carry: 116, total: 123, max: 135 },
+      'pw': { carry: 105, total: 112, max: 125 },
+      'aw': { carry: 98, total: 100, max: 115 },
+      '52': { carry: 88, total: 90, max: 105 },
+      '56': { carry: 81, total: 83, max: 95 },
+      '60': { carry: 72, total: 73, max: 85 }
+    };
+
+    // 학습된 거리 데이터 (라운드 기록에서 자동 계산)
+    let CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
+
+    // 사용자가 직접 설정한 거리 (localStorage에 저장)
+    const CUSTOM_CLUB_DISTANCES_KEY = 'golf_analyzer_custom_club_distances';
+
+    function saveCustomClubDistances(customData) {
+      try {
+        localStorage.setItem(CUSTOM_CLUB_DISTANCES_KEY, JSON.stringify(customData));
+      } catch (e) {
+        console.error('클럽 거리 저장 실패:', e);
+      }
+    }
+
+    function loadCustomClubDistances() {
+      try {
+        const saved = localStorage.getItem(CUSTOM_CLUB_DISTANCES_KEY);
+        return saved ? JSON.parse(saved) : null;
+      } catch (e) {
+        console.error('클럽 거리 로드 실패:', e);
+        return null;
+      }
+    }
+
+    // 클럽 거리 결정 우선순위: 사용자 수동 설정 > 학습 데이터 > 기본값
+    function applyClubDistances() {
+      const custom = loadCustomClubDistances();
+      if (custom) {
+        // 사용자 커스텀 값을 기본으로 적용
+        Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
+          if (custom[clubId] && custom[clubId].total > 0) {
+            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
+          }
+        });
+      }
+    }
+
+    // 라운드 기록에서 클럽별 거리 통계를 계산하여 CLUB_DISTANCES 업데이트
+    function updateClubDistancesFromRounds() {
+      const custom = loadCustomClubDistances();
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+
+      // 먼저 기본값으로 리셋
+      CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
+
+      // 사용자 커스텀 값이 있으면 우선 적용
+      if (custom) {
+        Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
+          if (custom[clubId] && custom[clubId].total > 0) {
+            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
+          }
+        });
+      }
+
+      if (rounds.length === 0) return;
+
+      // 클럽별 거리 수집
+      const clubStats = {};
+      CLUBS.forEach(c => { clubStats[c.id] = []; });
+
+      rounds.forEach(round => {
+        if (!Array.isArray(round.holes)) return;
+        round.holes.forEach(hole => {
+          if (!Array.isArray(hole.shots)) return;
+          hole.shots.forEach(shot => {
+            // 리커버리샷은 거리 학습에서 제외 (레이업은 포함)
+            if (shot.isRecovery) return;
+            const club = shot.club;
+            const dist = parseInt(shot.distance, 10);
+            if (club && clubStats[club] !== undefined && dist > 0) {
+              clubStats[club].push(dist);
+            }
+          });
+        });
+      });
+
+      // 학습 데이터: 사용자 커스텀이 없는 클럽만 업데이트
+      Object.keys(clubStats).forEach(clubId => {
+        // 사용자가 직접 설정한 클럽은 학습으로 덮어쓰지 않음
+        if (CLUB_DISTANCES[clubId] && CLUB_DISTANCES[clubId].customSet) return;
+
+        const distances = clubStats[clubId];
+        if (distances.length >= 2) {
+          distances.sort((a, b) => a - b);
+          const avg = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
+          const max = distances[distances.length - 1];
+          const carry = Math.round(avg * 0.92);
+          CLUB_DISTANCES[clubId] = { carry, total: avg, max, count: distances.length, learned: true };
+        } else if (distances.length === 1) {
+          const defaultDist = DEFAULT_CLUB_DISTANCES[clubId];
+          const measured = distances[0];
+          const blended = Math.round(defaultDist.total * 0.7 + measured * 0.3);
+          CLUB_DISTANCES[clubId] = {
+            carry: Math.round(blended * 0.92),
+            total: blended,
+            max: Math.max(defaultDist.max, measured),
+            count: 1,
+            learned: true
+          };
+        } else {
+          CLUB_DISTANCES[clubId] = { ...DEFAULT_CLUB_DISTANCES[clubId], count: 0, learned: false };
+        }
+      });
+    }
+
+    const DEFAULT_CLUBS = [
+      { id: 'driver', name: '드라이버' },
+      { id: '5wood', name: '5W' },
+      { id: '7wood', name: '7W' },
+      { id: '4iron', name: '4I' },
+      { id: '5iron', name: '5I' },
+      { id: '6iron', name: '6I' },
+      { id: '7iron', name: '7I' },
+      { id: '8iron', name: '8I' },
+      { id: '9iron', name: '9I' },
+      { id: 'pw', name: 'PW' },
+      { id: 'aw', name: 'AW' },
+      { id: '52', name: '52°' },
+      { id: '56', name: '56°' },
+      { id: '60', name: '60°' }
+    ];
+
+    let CLUBS = JSON.parse(JSON.stringify(DEFAULT_CLUBS));
+
+    // 사용자 골프백(클럽 목록) localStorage 관리
+    const CUSTOM_CLUBS_KEY = 'golf_analyzer_custom_clubs';
+
+    function saveCustomClubs() {
+      try {
+        localStorage.setItem(CUSTOM_CLUBS_KEY, JSON.stringify(CLUBS));
+      } catch (e) { console.error('클럽 목록 저장 실패:', e); }
+    }
+
+    function loadCustomClubs() {
+      try {
+        const saved = localStorage.getItem(CUSTOM_CLUBS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            CLUBS = parsed;
+          }
+        }
+      } catch (e) { console.error('클럽 목록 로드 실패:', e); }
+    }
+
+    // ========================================
+    // APP STATE
+    // ========================================
+    const appState = {
+      currentPage: 0,
+      pageHistory: [0],
+      data: {
+        rounds: [],
+        courses: [...DEFAULT_COURSES],
+        clubLearning: {}  // 클럽별 학습 데이터
+      },
+      activeRound: null,
+      currentHole: 1,
+      selectedTeeBox: 'blue',
+      pendingHandicap: '',
+            pendingStartHole: 1,
+holePar: null,
+      holeDistance: '',
+      shots: [],
+      currentShot: null,
+      puttingData: null,
+      showCourseModal: false,
+      showRoundSummaryModal: false,
+      showFinishRoundConfirm: false,  // 라운드 종료 확인 모달
+      showRecoveryModal: false,  // 진행 중 라운드 복구 모달
+      recoveryData: null,  // 복구할 데이터
+      newCourse: null,
+      editingCourse: null,
+      showAllRounds: false  // 라운드 목록 전체 보기 플래그
+    };
+    // ========================================
+    // SAFETY: non-blocking error handling (prevents blank screen)
+    // ========================================
+
+    function _ensureErrorBanner() {
+      let banner = document.getElementById('error-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'error-banner';
+        banner.style.cssText = [
+          'position:fixed',
+          'top:10px',
+          'left:50%',
+          'transform:translateX(-50%)',
+          'z-index:99999',
+          'max-width:92vw',
+          'background:#111827',
+          'color:#fff',
+          'padding:10px 12px',
+          'border-radius:12px',
+          'box-shadow:0 10px 25px rgba(0,0,0,0.25)',
+          'font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial',
+          'font-size:13px',
+          'line-height:1.35',
+          'display:none'
+        ].join(';');
+        banner.innerHTML = `
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="font-size:16px; line-height:1;">⚠️</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; margin-bottom:2px;">오류가 발생했습니다</div>
+              <div id="error-banner-msg" style="opacity:0.9;"></div>
+              <div style="margin-top:6px; opacity:0.75;">콘솔(F12)에서 상세 로그를 확인할 수 있습니다.</div>
+            </div>
+            <button id="error-banner-close" style="border:0; background:transparent; color:#fff; cursor:pointer; font-size:16px; line-height:1;">×</button>
+          </div>
+        `;
+        document.body.appendChild(banner);
+        const closeBtn = banner.querySelector('#error-banner-close');
+        if (closeBtn) closeBtn.onclick = () => { banner.style.display = 'none'; };
+      }
+      return banner;
+    }
+
+    function showErrorBanner(message) {
+      try {
+        const banner = _ensureErrorBanner();
+        const msg = banner.querySelector('#error-banner-msg');
+        if (msg) msg.textContent = String(message || '알 수 없는 오류');
+        banner.style.display = 'block';
+        clearTimeout(banner.__t);
+        banner.__t = setTimeout(() => { banner.style.display = 'none'; }, 8000);
+      } catch (e) {
+        console.error('Failed to show error banner:', e);
+      }
+    }
+
+    window.addEventListener('error', (e) => {
+      console.error('Runtime error:', e.error || e.message);
+      showErrorBanner(e.error?.message || e.message || 'Runtime error');
+      // 화면을 덮어쓰지 않음 (진행 가능)
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled rejection:', e.reason);
+      showErrorBanner(e.reason?.message || String(e.reason || 'Unhandled rejection'));
+      // 화면을 덮어쓰지 않음 (진행 가능)
+    });
+
+    // ========================================
+    // UTILITY: HTML ESCAPE (XSS prevention)
+    // ========================================
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ========================================
+    // LOCAL STORAGE
+    // ========================================
+    function saveData() {
+      try {
+        localStorage.setItem('golfAnalyzerV9', JSON.stringify(appState.data));
+      } catch (e) {
+        console.error('저장 실패:', e);
+        alert('데이터 저장에 실패했습니다. 로컬 서버(VS Code Live Server 등)로 실행해주세요.');
+      }
+    }
+
+    function loadData() {
+      try {
+        const saved = localStorage.getItem('golfAnalyzerV9');
+        if (saved) {
+          appState.data = JSON.parse(saved);
+
+          // ✅ Backward-compat: ensure strokeIndex exists on all courses
+          if (appState.data && Array.isArray(appState.data.courses)) {
+            appState.data.courses.forEach(c => {
+              if (!c.strokeIndex || !Array.isArray(c.strokeIndex)) {
+                const holes = c.holes || (c.par ? c.par.length : 18) || 18;
+                c.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.error('불러오기 실패:', e);
+      }
+    }
+
+    // ========================================
+    // BACKUP / RESTORE (export/import JSON)
+    // ========================================
+    function _ensureCourseStrokeIndex(data) {
+      try {
+        if (data && Array.isArray(data.courses)) {
+          data.courses.forEach(c => {
+            if (!c.strokeIndex || !Array.isArray(c.strokeIndex)) {
+              const holes = c.holes || (c.par ? c.par.length : 18) || 18;
+              c.strokeIndex = Array.from({ length: holes }, (_, i) => i + 1);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('StrokeIndex 보정 실패:', e);
+      }
+    }
+
+    window.downloadBackup = function() {
+      try {
+        // 저장 최신화
+        saveData();
+
+        const payload = {
+          meta: {
+            app: 'Golf Round Analyzer',
+            version: 'v10',
+            exportedAt: new Date().toISOString()
+          },
+          data: appState.data
+        };
+
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'YS_golf_backup.json';
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 0);
+      } catch (e) {
+        console.error('백업 실패:', e);
+        alert('백업 파일 생성에 실패했습니다.');
+      }
+    };
+
+    window.triggerBackupRestore = function() {
+      const input = document.getElementById('backup-restore-input');
+      if (!input) {
+        alert('복원 입력 요소를 찾을 수 없습니다.');
+        return;
+      }
+      input.value = ''; // 동일 파일 재선택 가능
+      input.click();
+    };
+
+    window.handleBackupRestore = function(event) {
+      try {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const text = e.target.result;
+            const parsed = JSON.parse(text);
+
+            // payload 형태: { meta, data } 또는 data 자체
+            const incoming = parsed && parsed.data ? parsed.data : parsed;
+
+            if (!incoming || !Array.isArray(incoming.rounds) || !Array.isArray(incoming.courses)) {
+              alert('백업 파일 형식이 올바르지 않습니다.\n(rounds/courses 데이터가 필요합니다)');
+              return;
+            }
+
+            if (!confirm('백업 파일로 복원하시겠습니까?\n현재 데이터는 백업 내용으로 교체됩니다.')) {
+              return;
+            }
+
+            // 적용 + 호환성 보정
+            _ensureCourseStrokeIndex(incoming);
+            appState.data = incoming;
+
+            saveData();
+            alert('복원이 완료되었습니다.');
+            render();
+          } catch (err) {
+            console.error('복원 파싱 실패:', err);
+            alert('백업 파일을 읽는 중 오류가 발생했습니다.\n파일이 손상되었거나 형식이 다를 수 있습니다.');
+          }
+        };
+        reader.readAsText(file, 'utf-8');
+      } catch (e) {
+        console.error('복원 처리 실패:', e);
+        alert('복원 처리 중 오류가 발생했습니다.');
+      }
+    };
+
+    // ========================================
+    // AI CLUB RECOMMENDATION
+    // ========================================
+    function getRecommendedClub(distance) {
+      if (!distance) return null;
+      
+      const dist = parseInt(distance);
+      let bestClub = null;
+      let minDiff = Infinity;
+
+      CLUBS.forEach(club => {
+        const clubDist = CLUB_DISTANCES[club.id];
+        if (clubDist && clubDist.total > 0) {
+          const diff = Math.abs(clubDist.total - dist);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestClub = club;
+          }
+        }
+      });
+
+      return bestClub;
+    }
+
+    // ========================================
+    // RENDER MAIN
+    // ========================================
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+
+      const container = document.createElement('div');
+      container.className = 'page-container';
+
+      // 라운드 진행 중인 경우
+      if (appState.activeRound) {
+        if (appState.puttingData) {
+          renderPuttingInput(container);
+        } else if (appState.currentShot) {
+          renderShotInput(container);
+        } else {
+          // Par 입력 화면 또는 샷 시작 대기
+          renderParInput(container);
+        }
+      } else {
+        // 일반 페이지
+        switch (appState.currentPage) {
+          case 0: renderHomePage(container); break;
+          case 1: renderRoundStartPage(container); break;
+          case 2: renderStatsPage(container); break;
+          case 3: renderHistoryPage(container); break;
+          case 5: renderAnalysisPage(container); break;
+                    case 11: renderExistingCourseSelectionPage(container); break;
+          case 12: renderTeeboxSelectionPage(container); break;
+case 4: renderSettingsPage(container); break;
+        }
+      }
+
+      app.appendChild(container);
+
+      // 라운드 진행 중이 아닐 때만 하단 네비게이션 표시
+      if (!appState.activeRound) {
+        // 홈이 아닌 페이지에서 백버튼 표시
+        if (appState.currentPage !== 0) {
+          const backBtn = document.createElement('button');
+          backBtn.className = 'back-button';
+          backBtn.innerHTML = '&#8592;';
+          backBtn.onclick = function() {
+            if (appState.pageHistory.length > 0) {
+              appState.currentPage = appState.pageHistory.pop();
+            } else {
+              appState.currentPage = 0;
+            }
+            render();
+          };
+          app.appendChild(backBtn);
+        }
+        if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
+      }
+
+      // 모달 렌더링
+      if (appState.showCourseModal) {
+        app.appendChild(renderCourseModal());
+      }
+      if (appState.showRoundSummaryModal) {
+        app.appendChild(renderRoundSummaryModal());
+      }
+      if (appState.showFinishRoundConfirm) {
+        app.appendChild(renderFinishRoundConfirmModal());
+      }
+      if (appState.showRecoveryModal) {
+        app.appendChild(renderRecoveryModal());
+      }
+    }
+
+
+    // ========================================
+    // SAFETY: render wrapper to avoid blank screen on runtime errors
+    // ========================================
+    const __safeRender = render;
+    render = function() {
+      let __prev = '';
+      try {
+        const app = document.getElementById('app');
+        if (!app) {
+          console.error('No #app container found.');
+          return;
+        }
+        __prev = app.innerHTML || '';
+        __safeRender();
+      } catch (e) {
+        console.error('Render failed:', e);
+        const app = document.getElementById('app');
+        if (app) {
+          if (__prev && __prev.trim()) app.innerHTML = __prev;
+          showErrorBanner('렌더링 오류: 화면을 복구했습니다.');
+        }
+      }
+    };
+
+    // ========================================
+    // BACK BUTTON
+    // ========================================
+    function goBack() {
+      if (appState.puttingData) {
+        // 퍼팅 입력 -> 샷 입력으로
+        appState.puttingData = null;
+        if (appState.shots.length > 0) {
+          appState.currentShot = appState.shots.pop();
+        }
+      } else if (appState.currentShot) {
+        // 샷 입력 -> 이전 샷 또는 Par 입력으로
+        if (appState.shots.length > 0) {
+          appState.currentShot = appState.shots.pop();
+        } else {
+          appState.currentShot = null;
+          appState.holePar = null;
+        }
+      } else {
+        // 홀 정보(샷 시작 전) 화면에서 뒤로가기:
+        // 첫 홀(아직 샷/홀 기록이 없는 상태)에서는 티박스 선택으로 돌아갑니다.
+        const isBeforeFirstShot =
+          !!appState.activeRound &&
+          Array.isArray(appState.activeRound.holes) &&
+          appState.activeRound.holes.length === 0 &&
+          appState.shots.length === 0 &&
+          !appState.currentShot &&
+          !appState.puttingData;
+
+        if (isBeforeFirstShot) {
+          const r = appState.activeRound;
+
+          // 티박스 선택 화면에서 값이 유지되도록 복원
+          appState.selectedCourseId = r.courseId;
+          appState.selectedTeeBox = r.teeBox;
+          appState.pendingHandicap = (r.handicap ?? '').toString();
+          appState.pendingStartHole = (r.startHole === 10 ? 10 : 1);
+
+          cancelRound();
+          appState.currentPage = 12; // 티박스 선택으로
+          render();
+          return;
+        }
+
+        // 그 외에는 기존처럼 라운드 취소 확인
+        if (appState.holePar) {
+          if (confirm('라운드를 취소하시겠습니까?')) {
+            cancelRound();
+          }
+        }
+      }
+      render();
+    }
+
+    function cancelRound() {
+      appState.activeRound = null;
+      appState.currentHole = 1;
+      appState.holePar = null;
+      appState.holeDistance = '';
+      appState.shots = [];
+      appState.currentShot = null;
+      appState.puttingData = null;
+      appState.currentPage = 0;
+    }
+
+    // ========================================
+    // BOTTOM NAVIGATION
+    // ========================================
+    function renderBottomNav() {
+      const nav = document.createElement('nav');
+      nav.className = 'bottom-nav';
+
+      const pages = [
+        { icon: '🏠', label: '홈', pageIndex: 0 },
+        { icon: '⛳', label: '라운드', pageIndex: 1 },
+        { icon: '⚙️', label: '설정', pageIndex: 4 }
+      ];
+
+      pages.forEach((page, index) => {
+        const btn = document.createElement('button');
+        btn.className = `nav-btn ${appState.currentPage === page.pageIndex ? 'active' : ''}`;
+        btn.innerHTML = `
+          <div class="nav-btn-icon">${page.icon}</div>
+          <div class="nav-btn-label">${page.label}</div>
+        `;
+        btn.onclick = () => {
+          appState.pageHistory.push(appState.currentPage);
+          appState.currentPage = page.pageIndex;
+          render();
+        };
+        nav.appendChild(btn);
+      });
+
+      return nav;
+    }
+
+    // ========================================
+    // HOME PAGE
+    // ========================================
+    function renderHomePage(container) {
+      const inProgressRound = appState.data.rounds.find(r => r.status === 'in-progress');
+
+      container.classList.add('scrollable');
+      container.innerHTML = `
+        <div class="home-shell">
+          <div class="home-brand">
+            <div class="home-brand-row">
+              <div class="home-flag">⛳</div>
+              <div class="home-brand-title">GOLF ROUND ANALYZER</div>
+            </div>
+          </div>
+
+          ${inProgressRound ? `
+            <div class="home-resume">
+              <div class="home-resume-text">
+                진행 중: <b>${inProgressRound.course}</b> • ${inProgressRound.holes.length}/18 홀
+              </div>
+              <button class="home-resume-btn" onclick="resumeRound()">계속하기</button>
+            </div>
+          ` : ''}
+
+          <div class="home-tiles">
+            <button class="home-tile active" onclick="goToPage(0)">
+              <div class="tile-icon">🏠</div>
+              <div class="tile-label">홈</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(1)">
+              <div class="tile-icon">⛳</div>
+              <div class="tile-label">라운드</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(2)">
+              <div class="tile-icon">📊</div>
+              <div class="tile-label">통계</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(3)">
+              <div class="tile-icon">📋</div>
+              <div class="tile-label">기록</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(5)">
+              <div class="tile-icon">📈</div>
+              <div class="tile-label">분석</div>
+            </button>
+
+            <button class="home-tile" onclick="goToPage(4)">
+              <div class="tile-icon">⚙️</div>
+              <div class="tile-label">설정</div>
+            </button>
+          </div>
+
+          <div class="home-version">v10.0.0 • 최종 배포 버전</div>
+        </div>
+      `;
+    }
+window.goToPage = function(page) {
+      appState.pageHistory.push(appState.currentPage);
+      appState.currentPage = page;
+      render();
+    };
+
+    window.resumeRound = function() {
+      const inProgressRound = appState.data.rounds.find(r => r.status === 'in-progress');
+      if (inProgressRound) {
+        appState.data.rounds = appState.data.rounds.filter(r => r.status !== 'in-progress');
+        appState.activeRound = inProgressRound;
+        // holeOrder 기반으로 다음 홀 결정 (10번 시작 순환 지원)
+        const played = inProgressRound.holes.length;
+        if (inProgressRound.holeOrder && inProgressRound.holeOrder[played]) {
+          appState.currentHole = inProgressRound.holeOrder[played];
+        } else {
+          appState.currentHole = played + 1;
+        }
+        appState.selectedTeeBox = inProgressRound.teeBox;
+        render();
+      }
+    };
+
+    // ========================================
+    // ROUND START PAGE (NEW - 코스 선택 / 새 코스)
+    // ========================================
+    function renderRoundStartPage(container) {
+      container.innerHTML = `
+        <h1 class="page-title roundstart-title"><span class="roundstart-flag">⛳</span> 새 라운드</h1>
+
+        <div class="section grow roundstart-shell">
+          <div class="roundstart-inner">
+            <div class="roundstart-label">코스 선택</div>
+
+            <button class="primary-btn roundstart-primary" onclick="goToExistingCourseSelection()">
+              <span class="btn-ico">📋</span>
+              등록된 코스에서 선택
+            </button>
+
+            <div class="scorecard-box">
+              <div class="scorecard-box-title">📄 스코어카드로 코스 추가</div>
+
+              <div class="scorecard-box-help">
+                <ul class="help-list">
+                  <li>
+                    스코어카드로 코스를 자동 추가하려면<br>
+                    API Key가 필요합니다.
+                  </li>
+
+                  <li>
+                    API Key는 '설정' → ‘API Key 설정’에서<br>
+                    입력하세요.
+                  </li>
+                  
+                  <li>
+                    스코어카드를 카메라로 촬영하거나<br>
+                    갤러리에서 선택해 업로드할 수 있습니다.
+                  </li>
+                  
+                  <li>
+                    홀별 Par, Index, 거리 정보가 명확히<br>
+                    보이는 사진을 권장드립니다.
+                  </li>
+                </ul>
+              </div>
+
+
+              <div class="scorecard-btn-row">
+                <button class="scorecard-btn scorecard-btn-dark" onclick="triggerScorecardCamera()">
+                  <span class="btn-ico">📷</span> 카메라
+                </button>
+                <button class="scorecard-btn scorecard-btn-light" onclick="triggerScorecardGallery()">
+                  <span class="btn-ico">🖼️</span> 갤러리
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================
+    // NAV: Existing course selection (missing handler fix)
+    // ========================================
+    window.goToExistingCourseSelection = function() {
+      appState.pageHistory.push(appState.currentPage);
+      appState.currentPage = 11; // existing course selection page
+      render();
+    };
+
+
+
+
+    window.selectRoundType = function(type) {
+      appState.currentPage = 10;
+      render();
+    };
+
+    // ========================================
+    // EXISTING COURSE SELECTION PAGE
+    // ========================================
+    function renderExistingCourseSelectionPage(container) {
+      container.innerHTML = `
+        <h1 class="page-title">코스 선택</h1>
+        
+        <div class="section grow" style="justify-content:center;">
+          <h2 class="section-title">등록된 코스</h2>
+          
+          ${appState.data.courses.map(course => {
+            const totalPar = course.par.reduce((a,b) => a+b, 0);
+            
+            return `
+              <button class="course-btn" onclick="selectExistingCourse('${course.id}')">
+                <div class="course-name">${escHtml(course.name)}</div>
+                <div class="course-details">
+                  ${escHtml(course.location)} • ${course.holes}홀 • Par ${totalPar}
+                </div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    window.selectExistingCourse = function(courseId) {
+      appState.selectedCourseId = courseId;
+      appState.currentPage = 12; // 티박스 선택 페이지
+      render();
+    };
+
+    // ========================================
+    // TEEBOX SELECTION PAGE
+    // ========================================
+    function renderTeeboxSelectionPage(container) {
+      const course = appState.data.courses.find(c => c.id === appState.selectedCourseId);
+
+      container.innerHTML = `
+        <h1 class="page-title">티박스 선택</h1>
+
+        <div class="section">
+          <h2 class="section-title">${escHtml(course.name)}</h2>
+          ${(course.holes === 18) ? `
+            <div class="section" style="margin-top: 10px;">
+              <h3 class="section-title" style="font-size: 15px; margin-bottom: 10px;">시작 홀</h3>
+              <div class="button-group">
+                <button class="choice-btn ${appState.pendingStartHole === 1 ? 'selected' : ''}"
+                  onclick="setPendingStartHole(1)">1번</button>
+                <button class="choice-btn ${appState.pendingStartHole === 10 ? 'selected' : ''}"
+                  onclick="setPendingStartHole(10)">10번</button>
+              </div>
+              <div style="margin-top: 8px; font-size: 12px; opacity: 0.75;">
+                * 10번 시작 시 10→18→1→9 순환으로 진행됩니다.
+              </div>
+            </div>
+          ` : ``}
+
+          <div style="margin: 12px 0 16px;">
+            <label class="input-label">핸디캡 (Playing Handicap)</label>
+            <input 
+              type="number" 
+              class="text-input" 
+              id="handicapInput"
+              inputmode="numeric"
+              enterkeyhint="done"
+              min="0"
+              max="54"
+              step="1"
+              placeholder="예: 18"
+              value="${appState.pendingHandicap ?? ''}"
+              oninput="setPendingHandicap(this.value)"
+              onkeypress="if(event.key==='Enter'){this.blur();}"
+            />
+            <div class="helper-text" style="margin-top: 6px; opacity: 0.75;">
+              * Stableford 계산에만 사용됩니다.
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="choice-btn ${appState.selectedTeeBox === 'blue' ? 'selected' : ''}" 
+              onclick="selectTeeBox('blue')">
+              🔵 Blue
+            </button>
+            <button class="choice-btn ${appState.selectedTeeBox === 'white' ? 'selected' : ''}" 
+              onclick="selectTeeBox('white')">
+              ⚪ White
+            </button>
+          </div>
+
+          <div style="margin-top: 18px;">
+            <button class="primary-btn" onclick="startRoundFromTeeboxSelection()">라운드 시작</button>
+          </div>
+        </div>
+      `;
+
+      // ====== 티박스 선택 화면 전용 뒤로가기 버튼 ======
+      const backBtn = document.createElement('button');
+      backBtn.className = 'back-button';
+      backBtn.innerHTML = '←';
+      backBtn.onclick = function() {
+        appState.currentPage = 1;   // 라운드 시작 화면으로 이동
+        render();
+      };
+
+  app.appendChild(backBtn);
+
+    }
+
+    window.setPendingHandicap = function(value) {
+      // 저장은 라운드 시작 시점에만 합니다. (이 값은 화면 유지용)
+      appState.pendingHandicap = value;
+    };
+
+    // ========================================
+    // START HOLE (1 or 10) + CYCLIC HOLE ORDER
+    // ========================================
+    function buildHoleOrder(holesCount, startHole) {
+      const H = parseInt(holesCount, 10) || 18;
+      let s = parseInt(startHole, 10) || 1;
+
+      // 9홀 코스는 1~9로 고정
+      if (H === 9) {
+        return Array.from({ length: 9 }, (_, i) => i + 1);
+      }
+
+      // 18홀: 기본은 1/10만 허용
+      if (s !== 1 && s !== 10) s = 1;
+
+      const order = [];
+      for (let i = s; i <= H; i++) order.push(i);
+      for (let i = 1; i < s; i++) order.push(i);
+      return order; // start=10 => 10..18,1..9
+    }
+
+    window.setPendingStartHole = function(v) {
+      appState.pendingStartHole = parseInt(v, 10) || 1;
+      render();
+    };
+
+
+    window.selectTeeBox = function(teeBox) {
+      // ✅ 티박스는 '선택만' 저장 (라운드 시작/홀 이동은 하지 않음)
+      appState.selectedTeeBox = teeBox;
+      render();
+    };
+
+    window.startRoundFromTeeboxSelection = function() {
+      const course = appState.data.courses.find(c => c.id === appState.selectedCourseId);
+      
+      const holeOrder = buildHoleOrder(course.holes || 18, appState.pendingStartHole);
+if (!course) {
+        alert('코스를 찾을 수 없습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      if (!appState.selectedTeeBox) {
+        alert('티박스를 선택해주세요.');
+        return;
+      }
+
+      const raw = (appState.pendingHandicap ?? '').toString().trim();
+      if (raw === '') {
+        alert('핸디캡을 입력해주세요. (0 이상 정수)');
+        return;
+      }
+
+      const handicap = parseInt(raw, 10);
+      if (!Number.isFinite(handicap) || handicap < 0 || handicap > 54) {
+        alert('핸디캡은 0~54 범위의 정수로 입력해주세요.');
+        return;
+      }
+
+      // ✅ 라운드 시작(여기서만 activeRound 생성)
+      appState.activeRound = {
+        id: Date.now(),
+        courseId: course.id,
+        course: course.name,
+        teeBox: appState.selectedTeeBox,
+        startHole: holeOrder[0],
+        holeOrder: holeOrder,
+        handicap: handicap,
+        date: new Date().toISOString(),
+        holes: [],
+        status: 'in-progress'
+      };
+
+      appState.currentHole = holeOrder[0];
+      render();
+    };
+
+    // (호환용) 예전 호출이 남아있을 수 있으므로 유지
+    window.selectTeeBoxAndStart = function(teeBox) {
+      appState.selectedTeeBox = teeBox;
+      // 예전 플로우(즉시 시작)가 필요하면 아래를 호출:
+      // startRoundFromTeeboxSelection();
+      render();
+    };
+
+
+    // ========================================
+    // COURSE REGISTRATION MODAL
+    // ========================================
+    window.openCourseRegistration = function() {
+      appState.newCourse = {
+        id: 'course_' + Date.now(),
+        name: '',
+        location: '',
+        holes: 18,
+        par: new Array(18).fill(4),
+        strokeIndex: Array.from({length: 18}, (_, i) => i + 1),
+        distances: {
+          blue: new Array(18).fill(0),
+          white: new Array(18).fill(0)
+        }
+      };
+      appState.showCourseModal = true;
+      render();
+    };
+
+    window.openCourseEdit = function(courseId) {
+      const course = appState.data.courses.find(c => c.id === courseId);
+      if (course) {
+        appState.newCourse = JSON.parse(JSON.stringify(course));
+        if (!appState.newCourse.strokeIndex || !Array.isArray(appState.newCourse.strokeIndex)) {
+          appState.newCourse.strokeIndex = Array.from({length: appState.newCourse.holes || 18}, (_, i) => i + 1);
+        }
+        appState.editingCourse = courseId;
+        appState.showCourseModal = true;
+        render();
+      }
+    };
+
+    window.closeCourseModal = function() {
+      appState.showCourseModal = false;
+      appState.newCourse = null;
+      appState.editingCourse = null;
+      render();
+    };
+
+    function renderCourseModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+
+  const course = appState.newCourse;
+  const holes = course.holes || 18;
+
+  const outPar = course.par.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inPar = holes === 18 ? course.par.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalPar = course.par.slice(0, holes).reduce((a,b) => a+b, 0);
+
+  const outDistBlue = course.distances.blue.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inDistBlue = holes === 18 ? course.distances.blue.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalDistBlue = course.distances.blue.slice(0, holes).reduce((a,b) => a+b, 0);
+
+  const outDistWhite = course.distances.white.slice(0, 9).reduce((a,b) => a+b, 0);
+  const inDistWhite = holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+  const totalDistWhite = course.distances.white.slice(0, holes).reduce((a,b) => a+b, 0);
+
+  const validation = validateCourse(course);
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">${appState.editingCourse ? '코스 수정' : '새 코스 등록'}</h2>
+        <button class="close-btn" onclick="closeCourseModal()">&times;</button>
+      </div>
+
+      <div class="input-section">
+        <label>코스명</label>
+        <input type="text" class="text-input"
+          value="${course.name}"
+          oninput="updateNewCourseNoRender('name', this.value)"
+          placeholder="예: 스카이72 오션">
+      </div>
+
+      <div class="input-section">
+        <label>위치</label>
+        <input type="text" class="text-input"
+          value="${course.location}"
+          oninput="updateNewCourseNoRender('location', this.value)"
+          placeholder="예: 인천">
+      </div>
+
+      <div class="input-section">
+        <label>홀 수</label>
+        <select class="select-input" value="${holes}"
+          onchange="updateNewCourse('holes', parseInt(this.value))">
+          <option value="9" ${holes === 9 ? 'selected' : ''}>9홀</option>
+          <option value="18" ${holes === 18 ? 'selected' : ''}>18홀</option>
+        </select>
+      </div>
+
+      <div class="subsection-title">Out (1-9홀)</div>
+
+      <div class="holes-header">
+        <div>홀</div>
+        <div>Par</div>
+        <div>Index</div>
+        <div>Blue(m)</div>
+        <div>White(m)</div>
+      </div>
+
+      ${course.par.slice(0, Math.min(9, holes)).map((par, i) => `
+        <div class="hole-row">
+          <div class="hole-number">${i+1}</div>
+          <select onchange="updateHoleParNoRender(${i}, parseInt(this.value))">
+            <option value="3" ${par === 3 ? 'selected' : ''}>3</option>
+            <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
+            <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
+          </select>
+          <input type="number" min="1" max="36" step="1" id="idx-${i}"
+            value="${course.strokeIndex && course.strokeIndex[i] ? course.strokeIndex[i] : ''}"
+            oninput="handleStrokeIndexInput(${i}, this.value)"
+            placeholder="Idx">
+          <input type="number" value="${course.distances.blue[i] || ''}"
+            oninput="updateHoleDistanceNoRender(${i}, 'blue', parseInt(this.value) || 0)"
+            placeholder="Blue">
+          <input type="number" value="${course.distances.white[i] || ''}"
+            oninput="updateHoleDistanceNoRender(${i}, 'white', parseInt(this.value) || 0)"
+            placeholder="White">
+        </div>
+      `).join('')}
+
+      <div class="hole-row totals-row" id="outTotalsRow">
+        <div class="totals-label">OUT</div>
+        <div class="totals-cell">Par ${outPar}</div>
+        <div class="totals-cell">-</div>
+        <div class="totals-cell">Blue ${outDistBlue}m</div>
+        <div class="totals-cell">White ${outDistWhite}m</div>
+      </div>
+
+      ${holes === 18 ? `
+        <div class="section-divider"></div>
+        <div class="subsection-title">In (10-18홀)</div>
+
+        <div class="holes-header">
+          <div>홀</div>
+          <div>Par</div>
+          <div>Index</div>
+          <div>Blue(m)</div>
+          <div>White(m)</div>
+        </div>
+
+        ${course.par.slice(9, 18).map((par, i) => {
+          const holeIdx = i + 9;
+          return `
+            <div class="hole-row">
+              <div class="hole-number">${holeIdx + 1}</div>
+              <select onchange="updateHoleParNoRender(${holeIdx}, parseInt(this.value))">
+                <option value="3" ${par === 3 ? 'selected' : ''}>3</option>
+                <option value="4" ${par === 4 ? 'selected' : ''}>4</option>
+                <option value="5" ${par === 5 ? 'selected' : ''}>5</option>
+              </select>
+              <input type="number" min="1" max="36" step="1" id="idx-${holeIdx}"
+                value="${course.strokeIndex && course.strokeIndex[holeIdx] ? course.strokeIndex[holeIdx] : ''}"
+                oninput="handleStrokeIndexInput(${holeIdx}, this.value)"
+                placeholder="Idx">
+              <input type="number" value="${course.distances.blue[holeIdx] || ''}"
+                oninput="updateHoleDistanceNoRender(${holeIdx}, 'blue', parseInt(this.value) || 0)"
+                placeholder="Blue">
+              <input type="number" value="${course.distances.white[holeIdx] || ''}"
+                oninput="updateHoleDistanceNoRender(${holeIdx}, 'white', parseInt(this.value) || 0)"
+                placeholder="White">
+            </div>
+          `;
+        }).join('')}
+
+        <div class="hole-row totals-row" id="inTotalsRow">
+          <div class="totals-label">IN</div>
+          <div class="totals-cell">Par ${inPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${inDistBlue}m</div>
+          <div class="totals-cell">White ${inDistWhite}m</div>
+        </div>
+
+        <!-- Summary rows (keep existing OUT above; add OUT between IN and TOTAL) -->
+        <div class="hole-row totals-row" id="outSummaryRow">
+          <div class="totals-label">OUT</div>
+          <div class="totals-cell">Par ${outPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${outDistBlue}m</div>
+          <div class="totals-cell">White ${outDistWhite}m</div>
+        </div>
+
+        <div class="hole-row totals-row total" id="totalTotalsRow">
+          <div class="totals-label">TOTAL</div>
+          <div class="totals-cell">Par ${totalPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${totalDistBlue}m</div>
+          <div class="totals-cell">White ${totalDistWhite}m</div>
+        </div>
+      ` : `
+        <div class="hole-row totals-row total" id="totalTotalsRow">
+          <div class="totals-label">TOTAL</div>
+          <div class="totals-cell">Par ${totalPar}</div>
+          <div class="totals-cell">-</div>
+          <div class="totals-cell">Blue ${totalDistBlue}m</div>
+          <div class="totals-cell">White ${totalDistWhite}m</div>
+        </div>
+      `}
+
+      <div id="courseValidationMsg" class="validation-msg">${validation.message || ''}</div>
+
+      <button id="courseSaveBtn" class="primary-btn" onclick="saveCourseAndRefresh()"
+        ${!validation.ok ? 'disabled' : ''}>
+        ${appState.editingCourse ? '수정 완료' : '코스 저장'}
+      </button>
+    </div>
+  `;
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeCourseModal();
+  };
+
+  return modal;
+}
+
+    window.updateNewCourse = function(field, value) {
+      appState.newCourse[field] = value;
+      if (field === 'holes') {
+        const holes = parseInt(value);
+        appState.newCourse.par = new Array(holes).fill(4);
+        appState.newCourse.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
+        appState.newCourse.distances = {
+          blue: new Array(holes).fill(0),
+          white: new Array(holes).fill(0)
+        };
+      }
+      render();
+    };
+
+    window.updateNewCourseNoRender = function(field, value) {
+      appState.newCourse[field] = value;
+      updateParSummary();
+    };
+
+    window.updateHoleParNoRender = function(index, value) {
+      appState.newCourse.par[index] = value;
+      updateParSummary();
+    };
+
+    window.updateHoleDistanceNoRender = function(index, teeBox, value) {
+      appState.newCourse.distances[teeBox][index] = value;
+      updateParSummary();
+    };
+
+    window.updateHoleIndexNoRender = function(index, value) {
+      if (!appState.newCourse.strokeIndex) {
+        appState.newCourse.strokeIndex = Array.from({length: appState.newCourse.holes}, (_, i) => i + 1);
+      }
+      appState.newCourse.strokeIndex[index] = value;
+    };
+
+    function validateCourse(course) {
+      const holes = course.holes || 18;
+
+      // Ensure strokeIndex array exists
+      if (!course.strokeIndex || !Array.isArray(course.strokeIndex)) {
+        course.strokeIndex = Array.from({length: holes}, (_, i) => i + 1);
+      }
+
+      const issues = [];
+      const invalidIndexHoles = [];
+      const indexMap = new Map(); // idx -> [holeNumbers]
+      const dupIndexHoles = [];
+
+      // Name
+      if (!course.name || !course.name.trim()) {
+        issues.push('코스명을 입력하세요.');
+      }
+
+      // Per-hole checks
+      for (let i = 0; i < holes; i++) {
+        const holeNo = i + 1;
+
+        // Index: positive, <= 36, integer
+        const idxVal = parseInt(course.strokeIndex[i], 10);
+        if (!Number.isInteger(idxVal) || idxVal < 1 || idxVal > 36) {
+          invalidIndexHoles.push(holeNo);
+        } else {
+          if (!indexMap.has(idxVal)) indexMap.set(idxVal, []);
+          indexMap.get(idxVal).push(holeNo);
+        }
+
+        // Distances must be positive numbers (Blue/White)
+        const b = parseInt(course.distances?.blue?.[i] ?? 0, 10);
+        const w = parseInt(course.distances?.white?.[i] ?? 0, 10);
+        if (!Number.isFinite(b) || b <= 0) issues.push(`Blue(m) 거리 누락: ${holeNo}번 홀`);
+        if (!Number.isFinite(w) || w <= 0) issues.push(`White(m) 거리 누락: ${holeNo}번 홀`);
+      }
+
+      // Duplicates
+      for (const [idx, holesArr] of indexMap.entries()) {
+        if (holesArr.length > 1) {
+          dupIndexHoles.push(...holesArr);
+          issues.push(`Index 중복: ${idx} (홀 ${holesArr.join(', ')})`);
+        }
+      }
+
+      if (invalidIndexHoles.length) {
+        issues.push(`Index 범위 오류(1~36): 홀 ${invalidIndexHoles.join(', ')}`);
+      }
+
+      // Keep message short: show up to 3 issues
+      const msg = issues.length ? issues.slice(0, 3).join('<br>') : '';
+
+      const ok = issues.length === 0;
+
+      return { ok, message: msg, invalidIndexHoles, dupIndexHoles };
+    }
+
+    function applyIndexValidationUI(validation) {
+      // Clear previous styling
+      const course = appState.newCourse;
+      const holes = course.holes || 18;
+      for (let i = 0; i < holes; i++) {
+        const el = document.getElementById(`idx-${i}`);
+        if (el) el.classList.remove('input-error');
+      }
+
+      // Mark invalids
+      validation.invalidIndexHoles.forEach(holeNo => {
+        const el = document.getElementById(`idx-${holeNo - 1}`);
+        if (el) el.classList.add('input-error');
+      });
+
+      // Mark duplicates
+      validation.dupIndexHoles.forEach(holeNo => {
+        const el = document.getElementById(`idx-${holeNo - 1}`);
+        if (el) el.classList.add('input-error');
+      });
+
+      // Message + button
+      const msgEl = document.getElementById('courseValidationMsg');
+      if (msgEl) {
+        if (validation.message) {
+          msgEl.innerHTML = validation.message;
+          msgEl.style.display = 'block';
+        } else {
+          msgEl.innerHTML = '';
+          msgEl.style.display = 'none';
+        }
+      }
+
+      const btn = document.getElementById('courseSaveBtn');
+      if (btn) {
+        btn.disabled = !validation.ok;
+      }
+    }
+
+    window.handleStrokeIndexInput = function(index, rawValue) {
+      let v = parseInt(rawValue, 10);
+      if (!Number.isFinite(v)) v = 0;
+
+      // Hard clamp in state (keep within 0..36; 0 means "not set yet")
+      if (v < 0) v = 0;
+      if (v > 36) v = 36;
+
+      window.updateHoleIndexNoRender(index, v);
+      // Recompute derived UI and validation
+      updateParSummary();
+    };
+
+    function updateParSummary() {
+      const course = appState.newCourse;
+      const outPar = course.par.slice(0, 9).reduce((a,b) => a+b, 0);
+      const inPar = course.holes === 18 ? course.par.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+      const totalPar = course.par.reduce((a,b) => a+b, 0);
+
+      const outDistBlue = course.distances.blue.slice(0, 9).reduce((a,b) => a+b, 0);
+      const inDistBlue = course.holes === 18 ? course.distances.blue.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+      const totalDistBlue = course.distances.blue.reduce((a,b) => a+b, 0);
+
+      const outDistWhite = course.distances.white.slice(0, 9).reduce((a,b) => a+b, 0);
+      const inDistWhite = course.holes === 18 ? course.distances.white.slice(9, 18).reduce((a,b) => a+b, 0) : 0;
+      const totalDistWhite = course.distances.white.reduce((a,b) => a+b, 0);
+
+      const summaryElement = document.querySelector('.par-summary');
+      if (summaryElement) {
+        summaryElement.innerHTML = `
+          <div class="par-summary-row">
+            <span class="par-summary-label">Out (1-9홀):</span>
+            <span class="par-summary-value">Par ${outPar} / Blue ${outDistBlue}m / White ${outDistWhite}m</span>
+          </div>
+          ${course.holes === 18 ? `
+            <div class="par-summary-row">
+              <span class="par-summary-label">In (10-18홀):</span>
+              <span class="par-summary-value">Par ${inPar} / Blue ${inDistBlue}m / White ${inDistWhite}m</span>
+            </div>
+          ` : ''}
+          <div class="par-summary-row total">
+            <span class="par-summary-label">Total:</span>
+            <span class="par-summary-value">Par ${totalPar} / Blue ${totalDistBlue}m / White ${totalDistWhite}m</span>
+          </div>
+        `;
+      }
+
+      // Update the new totals rows
+      const outRow = document.getElementById('outTotalsRow');
+      if (outRow) {
+        const cells = outRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${outPar}`;
+          cells[2].textContent = `Blue ${outDistBlue}m`;
+          cells[3].textContent = `White ${outDistWhite}m`;
+        }
+      }
+
+
+      const outSummary = document.getElementById('outSummaryRow');
+      if (outSummary) {
+        const cells = outSummary.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${outPar}`;
+          cells[2].textContent = `Blue ${outDistBlue}m`;
+          cells[3].textContent = `White ${outDistWhite}m`;
+        }
+      }
+
+      const inRow = document.getElementById('inTotalsRow');
+      if (inRow) {
+        const cells = inRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${inPar}`;
+          cells[2].textContent = `Blue ${inDistBlue}m`;
+          cells[3].textContent = `White ${inDistWhite}m`;
+        }
+      }
+
+      const totalRow = document.getElementById('totalTotalsRow');
+      if (totalRow) {
+        const cells = totalRow.querySelectorAll('.totals-cell');
+        if (cells && cells.length >= 4) {
+          cells[0].textContent = `Par ${totalPar}`;
+          cells[2].textContent = `Blue ${totalDistBlue}m`;
+          cells[3].textContent = `White ${totalDistWhite}m`;
+        }
+      }
+
+      // Validation/UI
+      const validation = validateCourse(course);
+      applyIndexValidationUI(validation);
+    }
+
+    window.saveCourseAndRefresh = function() {
+      const validation = validateCourse(appState.newCourse);
+      if (!validation.ok) {
+        applyIndexValidationUI(validation);
+        return;
+      }
+      if (appState.newCourse.name) {
+        if (appState.editingCourse) {
+          const index = appState.data.courses.findIndex(c => c.id === appState.editingCourse);
+          if (index !== -1) {
+            appState.data.courses[index] = {...appState.newCourse};
+          }
+        } else {
+          appState.data.courses.push({...appState.newCourse});
+        }
+        saveData();
+        closeCourseModal();
+        render();
+      }
+    };
+
+    // ========================================
+    // PAR INPUT (새 코스일 때 거리도 입력)
+    // ========================================
+    function renderParInput(container) {
+const holeIndex = appState.currentHole - 1;
+      
+      
+      // ✅ New/temporary course 여부(정의되지 않아 크래시 나는 현상 방지)
+      const isNewCourse = !!(appState.activeRound && appState.activeRound.courseId === 'new_course');
+
+      let defaultPar = 4;
+      let defaultDistance = '';
+      let defaultIndex = null;
+      
+      // 기존 코스의 경우
+      if (!isNewCourse && appState.activeRound.courseId !== 'new_course') {
+        const course = appState.data.courses.find(c => c.id === appState.activeRound.courseId);
+        if (course) {
+          if (course.par && course.par[holeIndex]) {
+            defaultPar = course.par[holeIndex];
+          }
+          if (course.distances && course.distances[appState.selectedTeeBox]) {
+            defaultDistance = course.distances[appState.selectedTeeBox][holeIndex] || '';
+          }
+          // Hole Index (Stroke Index)
+          if (course.strokeIndex && Array.isArray(course.strokeIndex)) {
+            const si = parseInt(course.strokeIndex[holeIndex], 10);
+            if (Number.isFinite(si) && si > 0) defaultIndex = si;
+          }
+        }
+      }
+
+      const holesPlayed = appState.activeRound.holes.length;
+
+      const shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, defaultIndex);
+
+      container.innerHTML = `
+        <h1 class="page-title">Hole ${appState.currentHole}</h1>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5vh;">
+          <div class="hole-info-card" style="margin-bottom: 0;">
+            <div class="hole-info-header">
+              <div class="hole-info-main">
+                Par ${defaultPar} • ${defaultDistance}m
+              </div>
+              <div class="hole-info-tee ${appState.selectedTeeBox}">
+                ${appState.selectedTeeBox === 'blue' ? '🔵 Blue' : '⚪ White'}
+              </div>
+            </div>
+            <div class="hole-info-details">
+              ${defaultIndex ? `<div class="hole-info-item index">📊 Index ${defaultIndex}</div>` : ''}
+              ${defaultIndex ? `<div class="hole-info-item shot">⛳ Shot +${shotsReceived}</div>` : ''}
+            </div>
+          </div>
+
+          <div>
+            ${renderScoreSummaryBox(appState.activeRound, '현재 라운드')}
+          </div>
+        </div>
+
+        ${holesPlayed > 0 ? `
+          <div class="round-control-panel">
+            <div class="round-info">
+              ${holesPlayed}/${getCourseById(appState.activeRound?.courseId)?.holes || 18} 홀 완료
+            </div>
+            <button class="finish-round-btn" onclick="finishRoundManually()">
+              라운드 종료
+            </button>
+          </div>
+        ` : ''}
+        
+        <div class="section grow" style="display: flex; align-items: flex-end;">
+          <button class="primary-btn" onclick="confirmParAndDistance()">
+            샷 입력 시작
+          </button>
+        </div>
+      `;
+
+      if (!appState.holePar) appState.holePar = defaultPar;
+      if (!appState.holeDistance) appState.holeDistance = defaultDistance;
+    }
+
+    window.setTempPar = function(par, ev) {
+      appState.holePar = par;
+      // 현재 Par 버튼 표시 업데이트
+      document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+      if (ev && ev.target) ev.target.classList.add('selected');
+    };
+
+    window.confirmParAndDistance = function() {
+      // ✅ Par/거리 수동 입력 기능 삭제: 코스 데이터에서 자동 적용
+      try {
+        const course = appState.data.courses.find(c => c.id === appState.activeRound?.courseId);
+        const holeIndex = (appState.currentHole || 1) - 1;
+
+        if (course && Array.isArray(course.par) && course.par[holeIndex]) {
+          appState.holePar = course.par[holeIndex];
+        }
+        const tee = appState.selectedTeeBox || 'blue';
+        if (course && course.distances && Array.isArray(course.distances[tee])) {
+          const d = course.distances[tee][holeIndex];
+          if (d !== undefined && d !== null && d !== '') appState.holeDistance = d;
+        }
+
+        // fallback (예외 상황)
+        if (!appState.holePar) appState.holePar = 4;
+      } catch (e) {
+        console.error('confirmParAndDistance auto-apply failed:', e);
+        if (!appState.holePar) appState.holePar = 4;
+      }
+
+      // 샷 입력 시작
+      startTeeShot();
+    };
+
+    window.finishRoundManually = function() {
+      console.log('finishRoundManually 호출됨');
+      appState.showFinishRoundConfirm = true;
+      render();
+    };
+
+    window.confirmFinishRound = function() {
+      console.log('라운드 종료 확인됨');
+      appState.showFinishRoundConfirm = false;
+      finishRound();
+    };
+
+    window.cancelFinishRound = function() {
+      console.log('라운드 종료 취소됨');
+      appState.showFinishRoundConfirm = false;
+      render();
+    };
+
+    function finishRound() {
+      console.log('finishRound 실행 시작');
+      appState.activeRound.status = 'completed';
+      appState.data.rounds.push(appState.activeRound);
+      
+      console.log('라운드 저장 중...');
+      saveData();
+      updateClubDistancesFromRounds(); // ✅ 라운드 완료 시 클럽 거리 학습 업데이트
+      
+      // 임시 저장 데이터 삭제
+      localStorage.removeItem('golf_temp_round');
+      console.log('🗑️ 임시 저장 데이터 삭제 (라운드 완료)');
+      
+      console.log('라운드 요약 모달 표시');
+      appState.showRoundSummaryModal = true;
+      render();
+    }
+
+    // ========================================
+    // SHOT TYPE & START
+    // ========================================
+    function startTeeShot() {
+      const isPar3 = appState.holePar === 3;
+      
+      appState.currentShot = {
+        number: appState.shots.length + 1,
+        type: 'tee',
+        club: '',
+        distance: isPar3 ? (appState.holeDistance || '') : null,
+        shotMode: 'normal',
+        isRecovery: false,
+        result: {
+          landing: '',
+          shape: '',
+          miss: [],
+          onGreen: null,
+          direction: []
+        }
+      };
+      render();
+    }
+
+    // ========================================
+    // SHOT INPUT (간소화: 샷모드 통합, 샷성격 자동, 온그린까지 자유 진행)
+    // ========================================
+    function renderShotInput(container) {
+      container.classList.add('scrollable');
+      const shot = appState.currentShot;
+      const isTeeShot = shot.type === 'tee';
+      const isPar3 = appState.holePar === 3;
+      const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
+      const isPar5 = appState.holePar === 5;
+      const isRecovery = shot.isRecovery || false;
+      const shotMode = shot.shotMode || (isRecovery ? 'recovery' : 'normal');
+      const isLayup = shotMode === 'layup';
+      
+      // Hole Index / Shot +N
+      const __courseForIndex = getCourseById(appState.activeRound?.courseId);
+      const __holeIdx = (appState.currentHole || 1) - 1;
+      const __strokeIndex = getHoleStrokeIndex(__courseForIndex, __holeIdx);
+      const __shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, __strokeIndex);
+
+      // Par 4/5 티샷은 거리 불필요, 그 외는 거리 입력 가능 (레이업샷 포함)
+      const needsDistance = (isTeeShot && isPar3) || !isTeeShot || isLayup;
+      
+      // 추천 클럽 (거리 입력 시 자동)
+      const recommendedClub = (needsDistance && shot.distance && !isRecovery) ? getRecommendedClub(shot.distance) : null;
+
+      container.innerHTML = `
+        <div class="shot-header-unified">
+          <div class="shot-header-row-1">
+            <div class="shot-header-left">
+              <div class="back-button" onclick="goBackFromShot()">←</div>
+              <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
+              ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
+            </div>
+          </div>
+          <div class="shot-header-row-2">
+            <div class="shot-header-left">
+              <span class="shot-number">샷 #${shot.number}${isTeeShot ? ' - 티샷' : ''}</span>
+              ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
+              ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
+            </div>
+          </div>
+          <div class="shot-header-row-3">
+            <div class="shot-header-left">
+              <span class="score-badge-inline gross">Gross ${calcRoundScores(appState.activeRound).gross}</span>
+              <span class="score-badge-inline nett">Nett ${(() => {
+                const s = calcRoundScores(appState.activeRound);
+                const nettToPar = s.nett - s.totalPar;
+                return nettToPar === 0 ? 'E' : (nettToPar > 0 ? '+' + nettToPar : nettToPar);
+              })()}</span>
+              <span class="score-badge-inline stb">STB ${calcRoundScores(appState.activeRound).stableford}</span>
+            </div>
+          </div>
+        </div>
+
+        ${appState.shots.length > 0 ? `
+          <div class="previous-shots">
+            <strong>이전 샷:</strong><br>
+            ${appState.shots.map((s, i) => {
+              if (s.isRecovery) return `✓ #${i + 1}: 🚨 리커버리`;
+              const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
+              const modeLabel = s.shotMode === 'layup' ? ' 🏌️레이업' : '';
+              const resultText = s.result.onGreen ? '온그린' : s.result.landing || '';
+              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''}${modeLabel}${resultText ? ' → ' + resultText : ''}`;
+            }).join('<br>')}
+          </div>
+        ` : ''}
+
+        <div class="section" style="padding: 8px 14px;">
+          <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+
+            <button class="choice-btn ${shotMode === 'normal' ? 'selected' : ''}"
+              onclick="setShotMode('normal')"
+              style="flex:1; padding:8px 4px; font-size:13px;">
+              일반샷
+            </button>
+
+            <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
+              onclick="setShotMode('layup')"
+              style="flex:1; padding:8px 4px; font-size:13px;">
+              레이업샷
+            </button>
+
+            <button class="choice-btn ${shotMode === 'recovery' ? 'selected' : ''}"
+              onclick="setShotMode('recovery')"
+              style="flex:1; padding:8px 4px; font-size:13px;">
+              🚨 리커버리샷
+            </button>
+
+          </div>
+        </div>
+
+
+
+        ${isRecovery ? `
+          <div style="background: #fff3cd; border-left: 4px solid var(--red); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
+            <p style="margin: 0; font-size: 13px; line-height: 1.4;">
+              🚨 트러블 상황에서 벗어나는 샷. 거리 학습에 반영되지 않습니다.
+            </p>
+          </div>
+        ` : ''}
+
+        ${!isRecovery ? `
+          ${needsDistance ? `
+            <div class="section">
+              <div class="input-section">
+                <label>거리 선택(미터) <span class="optional-label">(선택)</span></label>
+                <input type="number" class="text-input" id="distance-input"
+                  inputmode="numeric"
+                  enterkeyhint="done"
+                  value="${shot.distance || ''}" 
+                  placeholder="예: 150"
+                  oninput="updateDistanceAndRecommend()"
+                  onkeypress="if(event.key==='Enter'){this.blur();}">
+              </div>
+
+              <div id="club-recommendation-area">
+                ${recommendedClub ? `
+                  <div class="club-recommendation">
+                    💡 추천: ${recommendedClub.name} (캐리 ${CLUB_DISTANCES[recommendedClub.id].carry} / 토탈 ${CLUB_DISTANCES[recommendedClub.id].total} / 맥스 ${CLUB_DISTANCES[recommendedClub.id].max})
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="section">
+            <div class="input-section">
+              <label>클럽 선택</label>
+              <select class="select-input" onchange="selectClub(this.value)">
+                <option value="">선택하세요</option>
+                ${CLUBS.map(club => {
+                  const dist = CLUB_DISTANCES[club.id];
+                  const distText = dist.total > 0 ? ` (${dist.total}m)` : '';
+                  const selected = shot.club === club.id ? 'selected' : '';
+                  return `<option value="${club.id}" ${selected}>${club.name}${distText}</option>`;
+                }).join('')}
+              </select>
+            </div>
+
+            ${(isTeeShot && isPar4or5) || isLayup ? `
+              <div class="input-section">
+                <label>착지 지점</label>
+                <div class="button-group-3">
+                  <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
+                    onclick="setLanding('fairway')">페어웨이</button>
+                  <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
+                    onclick="setLanding('rough-left')">좌측 러프</button>
+                  <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
+                    onclick="setLanding('rough-right')">우측 러프</button>
+                </div>
+              </div>
+            ` : ''}
+
+            ${((isTeeShot && isPar4or5) || isLayup) ? `
+              <div class="input-section">
+                <label>구질 <span class="optional-label">(선택)</span></label>
+                <div class="button-group-3">
+                  <button class="choice-btn ${shot.result.shape === 'draw' ? 'selected' : ''}" 
+                    onclick="toggleShape('draw')">드로우</button>
+                  <button class="choice-btn ${shot.result.shape === 'straight' ? 'selected' : ''}" 
+                    onclick="toggleShape('straight')">스트레이트</button>
+                  <button class="choice-btn ${shot.result.shape === 'fade' ? 'selected' : ''}" 
+                    onclick="toggleShape('fade')">페이드</button>
+                </div>
+              </div>
+            ` : ''}
+
+            ${((isTeeShot && isPar4or5) || isLayup) && shot.result.landing && shot.result.landing !== 'fairway' ? `
+              <div class="input-section">
+                <label>미스 패턴 <span class="optional-label">(선택)</span></label>
+                <div class="checkbox-group">
+                  ${['hook', 'slice', 'push', 'pull', 'open', 'close'].map(miss => {
+                    const labels = { hook: '훅', slice: '슬라이스', push: '푸쉬', pull: '풀', open: '헤드열림', close: '헤드닫힘' };
+                    const isSelected = shot.result.miss && shot.result.miss.includes(miss);
+                    return `
+                      <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
+                        onclick="toggleMiss('${miss}')">
+                        ${labels[miss]}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${(!isTeeShot || isPar3) && !isLayup ? `
+              <div class="input-section">
+                <label>온그린 여부</label>
+                <div class="button-group">
+                  <button class="choice-btn ${shot.result.onGreen === true ? 'selected' : ''}" 
+                    onclick="setOnGreen(true)">온그린 ✓</button>
+                  <button class="choice-btn ${shot.result.onGreen === false ? 'selected' : ''}" 
+                    onclick="setOnGreen(false)">그린 미스</button>
+                </div>
+              </div>
+
+              ${shot.result.onGreen !== null ? `
+                <div class="input-section">
+                  <label>${shot.result.onGreen ? '핀 위치 대비' : '결과'} <span class="optional-label">(선택)</span></label>
+                  <div class="checkbox-group">
+                    ${['short', 'long', 'left', 'right', 'within1m'].map(dir => {
+                      const labels = { short: '짧음', long: '김', left: '좌측', right: '우측', within1m: '1m 이내' };
+                      const isSelected = shot.result.direction && shot.result.direction.includes(dir);
+                      return `
+                        <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
+                          onclick="toggleDirection('${dir}')">
+                          ${labels[dir]}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <button class="primary-btn" 
+          ${!canCompleteShot() ? 'disabled' : ''} 
+          onclick="completeShot()">
+          ${isRecovery ? '다음 샷으로 →' : (shot.result.onGreen ? '퍼팅 입력으로 →' : '다음 샷으로 →')}
+        </button>
+      `;
+
+      // 거리 입력 이벤트 (onchange로 변경)
+      setTimeout(() => {
+        const distInput = document.getElementById('distance-input');
+        if (distInput) {
+          distInput.onchange = function() {
+            appState.currentShot.distance = this.value;
+            render();
+          };
+        }
+      }, 0);
+    }
+
+    // ========================================
+    // SCROLL POSITION PRESERVATION
+    // ========================================
+    function preserveScrollAndRender() {
+      const scrollPos = window.scrollY || window.pageYOffset;
+      
+      // render 호출
+      render();
+      
+      // 즉시 복원 시도
+      window.scrollTo(0, scrollPos);
+      
+      // requestAnimationFrame으로 한 번 더
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPos);
+      });
+      
+      // 짧은 딜레이 후 한 번 더 (확실하게)
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+      }, 10);
+      
+      // 한 번 더 (매우 확실하게)
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+      }, 50);
+    }
+
+    // ========================================
+    // BACK BUTTON FROM SHOT INPUT
+    // ========================================
+    window.goBackFromShot = function() {
+      // 현재 샷 입력 취소
+      appState.currentShot = null;
+      
+      // 샷 입력 전 화면으로 복귀 (홈 화면)
+      if (appState.shots.length === 0 && !appState.puttingData) {
+        // 첫 번째 샷이면 홀 선택 화면으로
+        appState.holePar = null;
+        appState.holeDistance = '';
+      }
+      
+      render();
+    };
+
+    window.goBackFromPutting = function() {
+      // 퍼팅 입력 취소 - 마지막 샷으로 돌아감
+      appState.puttingData = null;
+      
+      // 마지막 샷 수정 모드로 전환
+      if (appState.shots.length > 0) {
+        const lastShot = appState.shots[appState.shots.length - 1];
+        appState.currentShot = {...lastShot};
+        appState.shots.pop(); // 마지막 샷 제거
+      }
+      
+      render();
+    };
+
+    window.selectClub = function(clubId) {
+      appState.currentShot.club = clubId;
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.setShotMode = function(mode) {
+      appState.currentShot.shotMode = mode;
+      appState.currentShot.isRecovery = (mode === 'recovery');
+      if (mode === 'recovery') {
+        // 리커버리샷 선택 시 다른 필드 초기화
+        appState.currentShot.club = '';
+        appState.currentShot.distance = '';
+        appState.currentShot.result = {
+          landing: '',
+          location: '',
+          onGreen: null,
+          direction: [],
+          shape: '',
+          miss: []
+        };
+      }
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    // 거리 입력 시 실시간 클럽 추천 업데이트
+    window.updateDistanceAndRecommend = function() {
+      const distInput = document.getElementById('distance-input');
+      if (distInput) {
+        appState.currentShot.distance = distInput.value;
+        const dist = parseInt(distInput.value, 10);
+        const area = document.getElementById('club-recommendation-area');
+        if (area && dist > 0) {
+          const rec = getRecommendedClub(dist);
+          if (rec) {
+            const d = CLUB_DISTANCES[rec.id];
+            area.innerHTML = `
+              <div class="club-recommendation">
+                💡 추천: ${rec.name} (캐리 ${d.carry} / 토탈 ${d.total} / 맥스 ${d.max})
+              </div>
+            `;
+          } else {
+            area.innerHTML = '';
+          }
+        } else if (area) {
+          area.innerHTML = '';
+        }
+      }
+    };
+
+    window.setLanding = function(type) {
+      appState.currentShot.result.landing = type;
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.setLocation = function(loc) {
+      appState.currentShot.result.location = loc;
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.toggleShape = function(shape) {
+      if (appState.currentShot.result.shape === shape) {
+        appState.currentShot.result.shape = '';
+      } else {
+        appState.currentShot.result.shape = shape;
+      }
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.toggleMiss = function(miss) {
+      if (!appState.currentShot.result.miss) {
+        appState.currentShot.result.miss = [];
+      }
+      const index = appState.currentShot.result.miss.indexOf(miss);
+      if (index > -1) {
+        appState.currentShot.result.miss.splice(index, 1);
+      } else {
+        appState.currentShot.result.miss.push(miss);
+      }
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.setOnGreen = function(value) {
+      appState.currentShot.result.onGreen = value;
+      // 온그린 여부 변경 시 방향 초기화
+      appState.currentShot.result.direction = [];
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    window.toggleDirection = function(dir) {
+      if (!appState.currentShot.result.direction) {
+        appState.currentShot.result.direction = [];
+      }
+      const index = appState.currentShot.result.direction.indexOf(dir);
+      if (index > -1) {
+        appState.currentShot.result.direction.splice(index, 1);
+      } else {
+        appState.currentShot.result.direction.push(dir);
+      }
+      autoSaveProgress();  // 자동 저장
+      preserveScrollAndRender();
+    };
+
+    function canCompleteShot() {
+      const shot = appState.currentShot;
+      
+      // 리커버리샷은 즉시 진행 가능
+      if (shot.isRecovery) return true;
+      
+      const isTeeShot = shot.type === 'tee';
+      const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
+      const isLayup = shot.shotMode === 'layup';
+      
+      // 클럽 선택 필수
+      if (!shot.club) return false;
+      
+      // Par 4/5 티샷: 착지 지점 필수 (온그린 선택 없음)
+      if (isTeeShot && isPar4or5) {
+        return !!shot.result.landing;
+      }
+      
+      // 레이업샷: 착지 지점 필수 (온그린 선택 없음)
+      if (isLayup) {
+        return !!shot.result.landing;
+      }
+      
+      // 그 외 (Par 3 티샷, 샷 #2~): 온그린 여부 필수
+      if (shot.result.onGreen === null) return false;
+      
+      return true;
+    }
+
+    window.completeShot = function() {
+      if (!canCompleteShot()) return;
+
+      // 거리 입력값 최종 반영
+      const distInput = document.getElementById('distance-input');
+      if (distInput) {
+        appState.currentShot.distance = distInput.value;
+      }
+
+      appState.shots.push({...appState.currentShot});
+
+      // 온그린이면 퍼팅으로
+      if (appState.currentShot.result.onGreen) {
+        appState.puttingData = {
+          putts: 2
+        };
+        appState.currentShot = null;
+      } else {
+        // 온그린 아니면 다음 샷 (type은 #1만 tee, 이후 approach)
+        const nextShotNumber = appState.shots.length + 1;
+        appState.currentShot = {
+          number: nextShotNumber,
+          type: 'approach',
+          club: '',
+          distance: '',
+          shotMode: 'normal',
+          isRecovery: false,
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        };
+      }
+      
+      render();
+    };
+
+    // ========================================
+    // PUTTING INPUT (퍼팅 수만 입력 - 테스트1 피드백)
+    // ========================================
+    function renderPuttingInput(container) {
+      const putting = appState.puttingData;
+
+      const __courseForIndex = getCourseById(appState.activeRound?.courseId);
+      const __holeIdx = (appState.currentHole || 1) - 1;
+      const __strokeIndex = getHoleStrokeIndex(__courseForIndex, __holeIdx);
+      const __shotsReceived = getShotsReceivedForHole(appState.activeRound?.handicap, __strokeIndex);
+
+      container.innerHTML = `
+        <div class="shot-header-unified">
+          <div class="shot-header-row-1">
+            <div class="shot-header-left">
+              <div class="back-button" onclick="goBackFromPutting()">←</div>
+              <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
+              ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
+            </div>
+          </div>
+          <div class="shot-header-row-2">
+            <div class="shot-header-left">
+              <span class="shot-number">⛳ 퍼팅</span>
+              ${__strokeIndex ? `<span class="index-badge-inline">📊 Index ${__strokeIndex}</span>` : ''}
+              ${__strokeIndex ? `<span class="shot-allowance-badge-inline">⛳ Shot +${__shotsReceived}</span>` : ''}
+            </div>
+          </div>
+          <div class="shot-header-row-3">
+            <div class="shot-header-left">
+              <span class="score-badge-inline gross">Gross ${calcRoundScores(appState.activeRound).gross}</span>
+              <span class="score-badge-inline nett">Nett ${(() => {
+                const s = calcRoundScores(appState.activeRound);
+                const nettToPar = s.nett - s.totalPar;
+                return nettToPar === 0 ? 'E' : (nettToPar > 0 ? '+' + nettToPar : nettToPar);
+              })()}</span>
+              <span class="score-badge-inline stb">STB ${calcRoundScores(appState.activeRound).stableford}</span>
+            </div>
+          </div>
+        </div>
+
+        ${appState.shots.length > 0 ? `
+          <div class="previous-shots">
+            <strong>이전 샷:</strong><br>
+            ${appState.shots.map((s, i) => {
+              const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
+              return `✓ #${i + 1}: ${clubName} → 온그린`;
+            }).join('<br>')}
+          </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="input-section">
+            <label>퍼팅 수</label>
+            <select class="select-input" onchange="setPuttCount(parseInt(this.value))">
+              ${[1, 2, 3, 4, 5].map(n => 
+                `<option value="${n}" ${putting.putts === n ? 'selected' : ''}>${n}퍼트</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+
+        <button class="primary-btn" onclick="completePutting()">
+          홀 완료 → 다음 홀로
+        </button>
+      `;
+    }
+
+    window.setPuttCount = function(count) {
+      appState.puttingData.putts = count;
+      render();
+    };
+
+    window.completePutting = function() {
+      const totalShots = appState.shots.length + appState.puttingData.putts;
+      
+      const holeData = {
+        number: appState.currentHole,
+        par: appState.holePar,
+        distance: appState.holeDistance,
+        shots: [...appState.shots],
+        putting: {...appState.puttingData},
+        score: totalShots
+      };
+
+      appState.activeRound.holes.push(holeData);
+      saveData();
+
+      
+
+
+      // 코스 기준 총 홀 수 (9/18)
+      const course = getCourseById(appState.activeRound.courseId);
+      const totalHoles = (appState.activeRound.holeOrder && appState.activeRound.holeOrder.length)
+        ? appState.activeRound.holeOrder.length
+        : (course?.holes || 18);
+
+      // 완료 체크 (총 홀 수만큼 기록되면 종료)
+      if (appState.activeRound.holes.length >= totalHoles) {
+        finishRound();
+        return;
+      }
+
+      // 다음 홀로 (순환 지원: holeOrder 사용)
+      const holesPlayed = appState.activeRound.holes.length;
+      if (appState.activeRound.holeOrder && appState.activeRound.holeOrder[holesPlayed]) {
+        appState.currentHole = appState.activeRound.holeOrder[holesPlayed];
+      } else {
+        appState.currentHole++;
+      }
+      appState.holePar = null;
+      appState.holeDistance = '';
+      appState.shots = [];
+      appState.currentShot = null;
+      appState.puttingData = null;
+
+      render();
+    };
+
+    // ========================================
+    
+    // ========================================
+    // GROSS / NETT / STABLEFORD HELPERS
+    // ========================================
+    function getCourseById(courseId) {
+      return appState.data.courses.find(c => c.id === courseId) || null;
+    }
+
+    // ========================================
+    // HOLE INDEX / HANDICAP SHOTS (+1/+2/+3)
+    // ========================================
+    function getHoleStrokeIndex(course, holeIndex) {
+      if (!course || !Array.isArray(course.strokeIndex)) return null;
+      const v = course.strokeIndex[holeIndex];
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+
+    // 플레이어 핸디캡(Playing HCP)과 Hole Index를 적용하여 해당 홀에서 받는 샷(+N) 계산
+    // 표준 배분 규칙: 18홀 기준으로 HCP/18 만큼 모든 홀에 기본 지급 + 나머지(rem)만큼 Index 상위 홀에 추가 지급
+    function getShotsReceivedForHole(playerHandicap, strokeIndex) {
+      const h = parseInt(playerHandicap, 10);
+      const si = parseInt(strokeIndex, 10);
+      if (!Number.isFinite(h) || h <= 0) return 0;
+      if (!Number.isFinite(si) || si <= 0) return 0;
+
+      const idxEff = ((si - 1) % 18) + 1;  // Index 19~도 1~18로 환산하여 안전 처리
+      const base = Math.floor(h / 18);
+      const rem = h % 18;
+
+      return base + (idxEff <= rem ? 1 : 0);
+    }
+
+
+    function _toIntOrNull(v) {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // Handicap strokes received on a hole, using Stroke Index ranking (1 = hardest)
+    function calcStrokesReceivedForHole(handicap, holesCount, strokeIndexRank) {
+      const H = Math.max(0, _toIntOrNull(handicap) ?? 0);
+      const holes = Math.max(1, _toIntOrNull(holesCount) ?? 18);
+      const idxRank = _toIntOrNull(strokeIndexRank);
+
+      const base = Math.floor(H / holes);
+      const rem = H % holes;
+
+      // If stroke index is missing/invalid, fall back to base only
+      if (!idxRank || idxRank < 1) return base;
+
+      return base + (idxRank <= rem ? 1 : 0);
+    }
+
+    function calcStablefordPoints(par, gross, strokesReceived) {
+      const p = _toIntOrNull(par) ?? 0;
+      const g = _toIntOrNull(gross) ?? 0;
+      const s = _toIntOrNull(strokesReceived) ?? 0;
+
+      const net = g - s;
+      // Standard Stableford: Net Par=2, Net Birdie=3, Net Bogey=1, etc.
+      const pts = 2 + (p - net);
+      return Math.max(0, pts);
+    }
+
+    // Returns totals for holes already played in the round
+    function calcRoundScores(round) {
+      if (!round || !Array.isArray(round.holes)) {
+        return { gross: 0, nett: 0, stableford: 0, holesPlayed: 0, totalPar: 0, scoreToPar: 0 };
+      }
+
+      const course = getCourseById(round.courseId);
+      const holesCount = course?.holes || round.holes.length || 18;
+
+      let gross = 0;
+      let totalPar = 0;
+      let nett = 0;
+      let stableford = 0;
+
+      round.holes.forEach(h => {
+        const holeNum = _toIntOrNull(h.number);
+        const par = _toIntOrNull(h.par) ?? 0;
+        const g = _toIntOrNull(h.score) ?? 0;
+
+        const strokeIdxRank = (course && holeNum && Array.isArray(course.strokeIndex))
+          ? _toIntOrNull(course.strokeIndex[holeNum - 1])
+          : null;
+
+        const strokesReceived = calcStrokesReceivedForHole(round.handicap, holesCount, strokeIdxRank);
+
+        gross += g;
+        totalPar += par;
+        nett += (g - strokesReceived);
+        stableford += calcStablefordPoints(par, g, strokesReceived);
+      });
+
+      return {
+        gross,
+        nett,
+        stableford,
+        holesPlayed: round.holes.length,
+        totalPar,
+        scoreToPar: gross - totalPar
+      };
+    }
+
+    function renderScoreSummaryBox(round, title) {
+      const s = calcRoundScores(round);
+      const holesLabel = round?.holes?.length ? `${s.holesPlayed}/${getCourseById(round.courseId)?.holes || 18}홀` : `0/${getCourseById(round?.courseId)?.holes || 18}홀`;
+      
+      // Nett 스코어를 Par 대비 +/- 형식으로 계산
+      const nettToPar = s.nett - s.totalPar;
+      let nettDisplay;
+      if (nettToPar === 0) {
+        nettDisplay = 'E';
+      } else if (nettToPar > 0) {
+        nettDisplay = '+' + nettToPar;
+      } else {
+        nettDisplay = String(nettToPar); // 음수는 그대로 표시
+      }
+
+      return `
+        <div class="par-summary" style="margin-top: 0; height: 100%;">
+          <div class="par-summary-row" style="font-weight:700; color: var(--green-primary); margin-bottom: 8px;">
+            <span>${title || 'Score'}</span>
+            <span style="opacity:0.8;">${holesLabel}</span>
+          </div>
+          <div class="par-summary-row"><span>Gross</span><span><b>${s.gross}</b></span></div>
+          <div class="par-summary-row"><span>Nett</span><span><b>${nettDisplay}</b></span></div>
+          <div class="par-summary-row"><span>Stableford</span><span><b>${s.stableford} pts</b></span></div>
+        </div>
+      `;
+    }
+
+    // ROUND SUMMARY MODAL
+    // ========================================
+    // ========================================
+    // RECOVERY MODAL
+    // ========================================
+    function renderRecoveryModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      
+      const saved = appState.recoveryData;
+      if (!saved) return modal;
+
+      const course = getCourseById(saved.activeRound?.courseId);
+      const courseName = saved.activeRound?.course || '알 수 없는 코스';
+      const currentHole = saved.currentHole || 1;
+      const holesCompleted = saved.activeRound?.holes?.length || 0;
+      
+      const savedTime = new Date(saved.timestamp);
+      const now = new Date();
+      const minutesAgo = Math.floor((now - savedTime) / (1000 * 60));
+      const timeAgoText = minutesAgo < 60 
+        ? `${minutesAgo}분 전` 
+        : `${Math.floor(minutesAgo / 60)}시간 전`;
+
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 420px;">
+          <div class="modal-header">
+            <h2 class="modal-title">🔄 진행 중인 라운드 발견!</h2>
+          </div>
+
+          <div style="padding: 20px 0;">
+            <div style="background: var(--sand); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+              <div style="font-size: 16px; font-weight: 600; color: var(--green-primary); margin-bottom: 8px;">
+                ${courseName}
+              </div>
+              <div style="font-size: 14px; opacity: 0.8; margin-bottom: 4px;">
+                📍 Hole ${currentHole} ${saved.currentShot ? '(입력 중)' : ''}
+              </div>
+              <div style="font-size: 14px; opacity: 0.8; margin-bottom: 4px;">
+                ✅ ${holesCompleted}홀 완료
+              </div>
+              <div style="font-size: 13px; opacity: 0.7;">
+                💾 저장 시각: ${timeAgoText}
+              </div>
+            </div>
+
+            <p style="font-size: 15px; text-align: center; line-height: 1.6; color: var(--brown);">
+              이어서 라운드를 진행하시겠습니까?
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="secondary-btn" onclick="discardRecovery()" style="flex: 1;">
+              새로 시작
+            </button>
+            <button class="primary-btn" onclick="resumeRound()" style="flex: 1;">
+              이어하기
+            </button>
+          </div>
+        </div>
+      `;
+
+      return modal;
+    }
+
+    // ========================================
+    // FINISH ROUND CONFIRM MODAL
+    // ========================================
+    function renderFinishRoundConfirmModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      
+      const holesPlayed = appState.activeRound?.holes?.length || 0;
+      const totalHoles = getCourseById(appState.activeRound?.courseId)?.holes || 18;
+
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+          <div class="modal-header">
+            <h2 class="modal-title">⚠️ 라운드 종료</h2>
+          </div>
+
+          <div style="padding: 20px 0; text-align: center;">
+            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 10px;">
+              현재 <b>${holesPlayed}/${totalHoles}</b> 홀을 완료했습니다.
+            </p>
+            <p style="font-size: 14px; opacity: 0.8;">
+              라운드를 종료하시겠습니까?
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="secondary-btn" onclick="cancelFinishRound()" style="flex: 1;">
+              취소
+            </button>
+            <button class="primary-btn" onclick="confirmFinishRound()" style="flex: 1; background: var(--red);">
+              종료
+            </button>
+          </div>
+        </div>
+      `;
+
+      modal.onclick = (e) => {
+        if (e.target === modal) cancelFinishRound();
+      };
+
+      return modal;
+    }
+
+    function renderRoundSummaryModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      
+      const round = appState.activeRound;
+      const s = calcRoundScores(round);
+      const totalScore = s.gross;
+      const totalPar = s.totalPar;
+      const scoreToPar = s.scoreToPar;
+
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">🎉 라운드 완료!</h2>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 18px;">
+            <div style="font-size: 40px; font-weight: 800; color: var(--green-primary); line-height: 1.1;">
+              ${totalScore}
+            </div>
+            <div style="font-size: 16px; margin-top: 6px; opacity: 0.75;">
+              Gross 기준 ${scoreToPar > 0 ? '+' : ''}${scoreToPar}
+            </div>
+          </div>
+
+          <div class="par-summary" style="margin-bottom: 18px;">
+            <div class="par-summary-row"><span>Gross</span><span><b>${s.gross}</b></span></div>
+            <div class="par-summary-row"><span>Nett</span><span><b>${(() => {
+              const ntp = s.nett - s.totalPar;
+              return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp);
+            })()}</b></span></div>
+            <div class="par-summary-row"><span>Stableford</span><span><b>${s.stableford} pts</b></span></div>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 16px; opacity: 0.8;">
+            ${round.course} • ${appState.selectedTeeBox === 'blue' ? '🔵 Blue' : '⚪ White'}
+          </div>
+<button class="primary-btn" onclick="closeRoundSummary()">
+            기록 확인하기
+          </button>
+        </div>
+      `;
+
+      modal.onclick = (e) => {
+        if (e.target === modal) closeRoundSummary();
+      };
+
+      return modal;
+    }
+
+    window.closeRoundSummary = function() {
+      appState.showRoundSummaryModal = false;
+      appState.activeRound = null;
+      appState.currentHole = 1;
+      appState.currentPage = 3;
+      render();
+    };
+
+    // ========================================
+    // STATS PAGE
+    // ========================================
+    function renderStatsPage(container) {
+      const completedRounds = appState.data.rounds.filter(r => r.status === 'completed');
+      
+      if (completedRounds.length === 0) {
+        container.innerHTML = `
+          <h1 class="page-title">📊 통계</h1>
+          <div class="empty-state">
+            <p>아직 완료된 라운드가 없습니다.</p>
+            <p>라운드를 완료하면 통계를 확인할 수 있습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const recentRounds = completedRounds.slice(-10);
+      const totalHoles = recentRounds.reduce((sum, r) => sum + r.holes.length, 0);
+      
+      const avgScore = (recentRounds.reduce((sum, r) => {
+        return sum + r.holes.reduce((s, h) => s + h.score, 0);
+      }, 0) / recentRounds.length).toFixed(1);
+
+      // 티샷 정확도
+      const teeShots = recentRounds.flatMap(r => 
+        r.holes.filter(h => h.shots.length > 0).map(h => h.shots[0])
+      );
+      const fairwayHits = teeShots.filter(s => s.result.landing === 'fairway').length;
+      const teeShotAccuracy = teeShots.length > 0 ? ((fairwayHits / teeShots.length) * 100).toFixed(0) : 0;
+
+      // GIR
+      const girCount = recentRounds.flatMap(r => r.holes).filter(h => {
+        const shotsToGreen = h.shots.findIndex(s => s.result.onGreen);
+        return shotsToGreen !== -1 && (shotsToGreen + 1) <= h.par - 2;
+      }).length;
+      const girPercentage = totalHoles > 0 ? ((girCount / totalHoles) * 100).toFixed(0) : 0;
+
+      // 평균 퍼팅
+      const totalPutts = recentRounds.reduce((sum, r) => 
+        sum + r.holes.reduce((s, h) => s + (h.putting?.putts || 0), 0), 0
+      );
+      const avgPutts = recentRounds.length > 0 ? (totalPutts / recentRounds.length).toFixed(1) : 0;
+
+      container.innerHTML = `
+        <h1 class="page-title">📊 통계</h1>
+        <p style="opacity: 0.7; margin-bottom: 8px; font-size: 13px;">최근 ${recentRounds.length}라운드</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">평균 스코어</div>
+            <div class="stat-value">${avgScore}</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">🏌️</div>
+            <div class="stat-label">티샷 정확도</div>
+            <div class="stat-value">${teeShotAccuracy}%</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-label">파온율 (GIR)</div>
+            <div class="stat-value">${girPercentage}%</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">⛳</div>
+            <div class="stat-label">평균 퍼팅</div>
+            <div class="stat-value">${avgPutts}</div>
+          </div>
+        </div>
+
+        <div class="section grow">
+          <h2 class="section-title">클럽별 평균 거리</h2>
+          <div class="club-list">
+            ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => {
+              const d = CLUB_DISTANCES[club.id];
+              const sqColor = d.customSet ? '#e53e3e' : (d.learned ? '#38a169' : '#ecc94b');
+              const countText = d.customSet ? ' (사용자 설정)' : (d.learned && d.count ? ` (${d.count}회)` : ' (기본값)');
+              return `
+              <div class="club-item">
+                <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
+                ${club.name}: ${d.total}m${countText}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================
+    // HISTORY PAGE
+    // ========================================
+    function renderHistoryPage(container) {
+      container.classList.add('scrollable');
+      const completedRounds = appState.data.rounds.filter(r => r.status === 'completed');
+
+      if (completedRounds.length === 0) {
+        container.innerHTML = `
+          <h1 class="page-title">📋 기록</h1>
+          <div class="empty-state">
+            <p>아직 완료된 라운드가 없습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <h1 class="page-title">📋 라운드 기록</h1>
+        
+        <div class="rounds-list">
+          ${completedRounds.reverse().map(round => {
+            const s = calcRoundScores(round);
+            const totalScore = s.gross;
+            const totalPar = s.totalPar;
+            const scoreToPar = s.scoreToPar;
+            const teeBox = round.teeBox === 'blue' ? '🔵' : '⚪';
+            
+            return `
+              <div class="round-card">
+                <div class="round-header-info">
+                  <h3>${round.course} ${teeBox}</h3>
+                  <span class="round-date">
+                    ${new Date(round.date).toLocaleDateString('ko-KR')} • ${round.holes.length}홀
+                  </span>
+                </div>
+                <div class="round-score-info" style="min-width: 120px; text-align: right;">
+                  <div class="total-score">${totalScore}</div>
+                  <div style="font-size: 13px; color: var(--brown); opacity: 0.75; margin-top: 2px;">
+                    Nett <b>${(() => {
+                      const ntp = s.nett - s.totalPar;
+                      return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp);
+                    })()}</b>
+                  </div>
+                  <div style="font-size: 13px; color: var(--brown); opacity: 0.75;">
+                    Stableford <b>${s.stableford}</b> pts
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // ========================================
+    // CLAUDE API KEY MANAGEMENT
+    // ========================================
+    const CLAUDE_API_KEY_STORAGE = 'golf_analyzer_claude_api_key';
+
+    function getClaudeApiKey() {
+      return (localStorage.getItem(CLAUDE_API_KEY_STORAGE) || '').trim();
+    }
+
+    function setClaudeApiKey(key) {
+      localStorage.setItem(CLAUDE_API_KEY_STORAGE, (key || '').trim());
+    }
+
+    function getClaudeApiKeyDisplay() {
+      const key = getClaudeApiKey();
+      if (!key) return '미설정';
+      return key.slice(0, 10) + '••••••' + key.slice(-4);
+    }
+
+    window.promptClaudeApiKey = function() {
+      const current = getClaudeApiKey();
+      const msg = current
+        ? '현재 API Key: ' + getClaudeApiKeyDisplay() + '\n\n새 키를 입력하거나 비워서 삭제:'
+        : 'Anthropic API Key를 입력하세요:\n(https://console.anthropic.com 에서 발급)';
+      const input = prompt(msg, current);
+      if (input === null) return; // 취소
+      setClaudeApiKey(input);
+      alert(input.trim() ? '✅ API Key가 저장되었습니다.' : '🗑️ API Key가 삭제되었습니다.');
+      render();
+    };
+
+    
+    // ========================================
+    // ANALYSIS PAGE (새로 추가)
+    // ========================================
+    function renderAnalysisPage(container) {
+      container.classList.add('scrollable');
+      container.innerHTML = `
+        <h1 class="page-title">📈 분석</h1>
+
+        <div class="section">
+          <h2 class="section-title">분석 유형 선택</h2>
+          <div class="button-group" style="flex-direction: column; gap: 12px;">
+            <button class="secondary-btn" onclick="showRoundByRoundAnalysis()">
+              📅 라운드별 분석
+            </button>
+            <button class="secondary-btn" onclick="showOverallStatistics()">
+              📊 종합 통계
+            </button>
+            <button class="secondary-btn" onclick="showClubAnalysis()">
+              🎯 클럽 분석
+            </button>
+            <button class="secondary-btn" onclick="showImprovementGuide()">
+              💡 개선 가이드
+            </button>
+          </div>
+        </div>
+
+        <div id="analysis-result" class="section" style="display: none;">
+          <!-- 분석 결과가 여기에 표시됩니다 -->
+        </div>
+      `;
+    }
+
+    // 분석 함수들
+    
+    // ========================================
+    // 1. 라운드별 분석
+    // ========================================
+    window.showRoundByRoundAnalysis = function() {
+      const resultDiv = document.getElementById('analysis-result');
+      if (!resultDiv) return;
+
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed').reverse();
+      
+      if (rounds.length === 0) {
+        resultDiv.innerHTML = '<p style="text-align:center; opacity:0.7;">완료된 라운드가 없습니다.</p>';
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      const displayCount = appState.showAllRounds ? rounds.length : 10;
+
+      resultDiv.innerHTML = `
+        <h2 class="section-title">📅 라운드별 분석</h2>
+        <p style="margin-bottom: 16px; opacity: 0.8;">
+          분석할 라운드를 선택하세요
+        </p>
+        
+        ${rounds.slice(0, displayCount).map((round, idx) => {
+          const s = calcRoundScores(round);
+          const actualIndex = appState.data.rounds.length - 1 - idx;
+          return `
+            <button class="course-btn" onclick="analyzeSpecificRound(${actualIndex})" style="margin-bottom: 12px; text-align: left;">
+              <div class="course-info">
+                <div class="course-name">
+                  ${new Date(round.date).toLocaleDateString('ko-KR')} - ${round.course}
+                </div>
+                <div class="course-details">
+                  ${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar}) • 
+                  ${round.holes.length}홀 완료
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('')}
+        
+        ${rounds.length > 10 && !appState.showAllRounds ? `
+          <button class="secondary-btn" onclick="appState.showAllRounds=true; showRoundByRoundAnalysis();">
+            이전 라운드 더보기 (${rounds.length - 10}개)
+          </button>
+        ` : ''}
+        
+        ${appState.showAllRounds ? `
+          <button class="secondary-btn" onclick="appState.showAllRounds=false; showRoundByRoundAnalysis();">
+            최근 10개만 보기
+          </button>
+        ` : ''}
+      `;
+      resultDiv.style.display = 'block';
+    };
+
+    window.analyzeSpecificRound = function(roundIndex) {
+      const resultDiv = document.getElementById('analysis-result');
+      if (!resultDiv) return;
+
+      const round = appState.data.rounds[roundIndex];
+      if (!round) return;
+
+      const analysis = analyzeTodayRound(round);
+      const s = calcRoundScores(round);
+
+      resultDiv.innerHTML = `
+        <h2 class="section-title">📅 라운드 상세 분석</h2>
+        <p style="margin-bottom: 12px; opacity: 0.8;">
+          ${round.course} • ${new Date(round.date).toLocaleDateString('ko-KR')}
+        </p>
+        <p style="margin-bottom: 16px; font-size: 14px; opacity: 0.7;">
+          Gross ${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar}) • 
+          Nett ${(() => { const ntp = s.nett - s.totalPar; return ntp === 0 ? 'E' : (ntp > 0 ? '+' + ntp : ntp); })()} • 
+          Stableford ${s.stableford} pts
+        </p>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 샷 정확도 트렌드</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>전반 9홀 정확도</span><span><b>${analysis.frontNineAccuracy}%</b></span></div>
+          <div class="par-summary-row"><span>후반 9홀 정확도</span><span><b>${analysis.backNineAccuracy}%</b></span></div>
+          <div class="par-summary-row"><span>전체 정확도</span><span><b>${analysis.overallAccuracy}%</b></span></div>
+        </div>
+        ${analysis.frontNineAccuracy > analysis.backNineAccuracy + 10 ? 
+          '<p style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 8px; font-size: 14px;">⚠️ 후반 집중력이 떨어졌습니다. 체력 관리와 멘탈 유지에 신경 쓰세요.</p>' : ''}
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🏌️ 티샷 분석</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>페어웨이 적중</span><span><b>${analysis.teeShot.fairway}회</b></span></div>
+          <div class="par-summary-row"><span>좌측 러프</span><span><b>${analysis.teeShot.leftRough}회</b></span></div>
+          <div class="par-summary-row"><span>우측 러프</span><span><b>${analysis.teeShot.rightRough}회</b></span></div>
+          <div class="par-summary-row"><span>기타 (OB/해저드)</span><span><b>${analysis.teeShot.other}회</b></span></div>
+        </div>
+        <p style="margin-top: 8px; padding: 8px; background: var(--sand); border-radius: 8px; font-size: 14px;">
+          ${analysis.teeShot.tendency}
+        </p>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">⛳ 아이언샷 분석</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>짧았던 샷</span><span><b>${analysis.ironShot.short}회</b></span></div>
+          <div class="par-summary-row"><span>적정 거리</span><span><b>${analysis.ironShot.accurate}회</b></span></div>
+          <div class="par-summary-row"><span>길었던 샷</span><span><b>${analysis.ironShot.long}회</b></span></div>
+        </div>
+        <p style="margin-top: 8px; padding: 8px; background: var(--sand); border-radius: 8px; font-size: 14px;">
+          ${analysis.ironShot.tendency}
+        </p>
+
+        <button class="secondary-btn" onclick="showRoundByRoundAnalysis()" style="margin-top: 16px;">
+          ← 라운드 목록으로 돌아가기
+        </button>
+      `;
+      resultDiv.style.display = 'block';
+    };
+
+    // ========================================
+    // 2. 종합 통계
+    // ========================================
+    window.showOverallStatistics = function() {
+      const resultDiv = document.getElementById('analysis-result');
+      if (!resultDiv) return;
+
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+      if (rounds.length === 0) {
+        resultDiv.innerHTML = '<p style="text-align:center; opacity:0.7;">완료된 라운드가 없습니다.</p>';
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      const analysis = analyzeAllRounds(rounds);
+      const holeAvg = analyzeHoleAverages(rounds);
+      const monthly = analyzeMonthlyTrend(rounds);
+      const scoreDist = analyzeScoreDistribution(rounds);
+
+      resultDiv.innerHTML = `
+        <h2 class="section-title">📊 종합 통계</h2>
+        <p style="margin-bottom: 16px; opacity: 0.8;">
+          총 ${rounds.length}개 라운드 분석
+        </p>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📈 평균 스코어</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>평균 Gross</span><span><b>${analysis.avgGross}타</b></span></div>
+          <div class="par-summary-row"><span>최고 기록</span><span><b>${analysis.bestGross}타</b></span></div>
+          <div class="par-summary-row"><span>최근 5라운드 평균</span><span><b>${analysis.recent5Avg}타</b></span></div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🎯 정확도 통계</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>페어웨이 안착률</span><span><b>${analysis.fairwayHitRate}%</b></span></div>
+          <div class="par-summary-row"><span>그린 적중률 (GIR)</span><span><b>${analysis.girRate}%</b></span></div>
+          <div class="par-summary-row"><span>평균 퍼팅</span><span><b>${analysis.avgPutts}개/홀</b></span></div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 홀별 평균</h3>
+        <div class="par-summary">
+          <div class="par-summary-row"><span>Par 3 평균</span><span><b>${holeAvg.par3Avg}타 (Par ${holeAvg.par3Diff > 0 ? '+' : ''}${holeAvg.par3Diff})</b></span></div>
+          <div class="par-summary-row"><span>Par 4 평균</span><span><b>${holeAvg.par4Avg}타 (Par ${holeAvg.par4Diff > 0 ? '+' : ''}${holeAvg.par4Diff})</b></span></div>
+          <div class="par-summary-row"><span>Par 5 평균</span><span><b>${holeAvg.par5Avg}타 (Par ${holeAvg.par5Diff > 0 ? '+' : ''}${holeAvg.par5Diff})</b></span></div>
+        </div>
+        ${holeAvg.weakest ? `<p style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 8px; font-size: 14px;">⚠️ ${holeAvg.weakest}이 가장 약합니다.</p>` : ''}
+
+        ${monthly.length > 0 ? `
+          <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📈 월별 추세</h3>
+          <div class="par-summary">
+            ${monthly.map(m => `
+              <div class="par-summary-row">
+                <span>${m.month}</span>
+                <span><b>${m.avgScore}타 (${m.count}라운드)${m.trend}</b></span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 스코어 분포</h3>
+        <div class="par-summary">
+          ${scoreDist.map(sd => `
+            <div class="par-summary-row">
+              <span>${sd.range}</span>
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span style="background: var(--green-light); height: 12px; width: ${sd.percentage * 2}px; border-radius: 4px;"></span>
+                <b>${sd.percentage}% (${sd.count}라운드)</b>
+              </span>
+            </div>
+          `).join('')}
+        </div>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">💪 실력 향상 추세</h3>
+        <p style="padding: 12px; background: var(--sand); border-radius: 8px; font-size: 14px;">
+          ${analysis.improvementTrend}
+        </p>
+      `;
+      resultDiv.style.display = 'block';
+    };
+
+    function analyzeHoleAverages(rounds) {
+      let par3Total = 0, par3Count = 0;
+      let par4Total = 0, par4Count = 0;
+      let par5Total = 0, par5Count = 0;
+
+      rounds.forEach(round => {
+        round.holes.forEach(hole => {
+          const par = hole.par;
+          const score = hole.score || 0;
+          
+          if (par === 3) { par3Total += score; par3Count++; }
+          else if (par === 4) { par4Total += score; par4Count++; }
+          else if (par === 5) { par5Total += score; par5Count++; }
+        });
+      });
+
+      const par3Avg = par3Count > 0 ? (par3Total / par3Count).toFixed(1) : 0;
+      const par4Avg = par4Count > 0 ? (par4Total / par4Count).toFixed(1) : 0;
+      const par5Avg = par5Count > 0 ? (par5Total / par5Count).toFixed(1) : 0;
+
+      const par3Diff = par3Count > 0 ? (par3Avg - 3).toFixed(1) : 0;
+      const par4Diff = par4Count > 0 ? (par4Avg - 4).toFixed(1) : 0;
+      const par5Diff = par5Count > 0 ? (par5Avg - 5).toFixed(1) : 0;
+
+      let weakest = '';
+      const diffs = [
+        { name: 'Par 3 홀', diff: parseFloat(par3Diff) },
+        { name: 'Par 4 홀', diff: parseFloat(par4Diff) },
+        { name: 'Par 5 홀', diff: parseFloat(par5Diff) }
+      ];
+      const maxDiff = diffs.reduce((max, d) => d.diff > max.diff ? d : max, diffs[0]);
+      if (maxDiff.diff > 1.0) weakest = maxDiff.name;
+
+      return { par3Avg, par4Avg, par5Avg, par3Diff, par4Diff, par5Diff, weakest };
+    }
+
+    function analyzeMonthlyTrend(rounds) {
+      if (rounds.length === 0) return [];
+
+      const monthlyData = {};
+      
+      rounds.forEach(round => {
+        const date = new Date(round.date);
+        const key = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthlyData[key]) {
+          monthlyData[key] = { scores: [], count: 0 };
+        }
+        
+        const s = calcRoundScores(round);
+        monthlyData[key].scores.push(s.gross);
+        monthlyData[key].count++;
+      });
+
+      const monthly = Object.keys(monthlyData)
+        .sort()
+        .reverse()
+        .slice(0, 6)
+        .map((key, idx, arr) => {
+          const data = monthlyData[key];
+          const avgScore = Math.round(data.scores.reduce((a,b) => a+b, 0) / data.count);
+          
+          let trend = '';
+          if (idx < arr.length - 1) {
+            const prevKey = arr[idx + 1];
+            const prevAvg = Math.round(monthlyData[prevKey].scores.reduce((a,b) => a+b, 0) / monthlyData[prevKey].count);
+            const diff = avgScore - prevAvg;
+            if (diff < -1) trend = ` ↓ ${Math.abs(diff)}타 개선`;
+            else if (diff > 1) trend = ` ↑ ${diff}타 상승`;
+          }
+          
+          return {
+            month: key.replace('.', '년 ') + '월',
+            avgScore,
+            count: data.count,
+            trend
+          };
+        });
+
+      return monthly;
+    }
+
+    function analyzeScoreDistribution(rounds) {
+      const ranges = [
+        { name: '70대', min: 70, max: 79 },
+        { name: '80대', min: 80, max: 89 },
+        { name: '90대', min: 90, max: 99 },
+        { name: '100대+', min: 100, max: 999 }
+      ];
+
+      const distribution = ranges.map(range => {
+        const count = rounds.filter(r => {
+          const s = calcRoundScores(r);
+          return s.gross >= range.min && s.gross <= range.max;
+        }).length;
+        
+        const percentage = rounds.length > 0 ? Math.round((count / rounds.length) * 100) : 0;
+        
+        return {
+          range: range.name,
+          count,
+          percentage
+        };
+      }).filter(d => d.count > 0);
+
+      return distribution;
+    }
+
+    // Helper function for round analysis
+    function analyzeTodayRound(round) {
+      let frontNineShots = 0, frontNineAccurate = 0;
+      let backNineShots = 0, backNineAccurate = 0;
+      
+      let fairway = 0, leftRough = 0, rightRough = 0, other = 0;
+      let ironShort = 0, ironAccurate = 0, ironLong = 0;
+
+      round.holes.forEach((hole, idx) => {
+        if (!hole.shots) return;
+
+        hole.shots.forEach(shot => {
+          // 리커버리샷은 분석에서 제외
+          if (shot.isRecovery) return;
+          
+          const isFrontNine = idx < 9;
+          if (isFrontNine) {
+            frontNineShots++;
+            if (shot.result.onGreen) frontNineAccurate++;
+          } else {
+            backNineShots++;
+            if (shot.result.onGreen) backNineAccurate++;
+          }
+
+          if (shot.type === 'tee') {
+            if (shot.result.landing === 'fairway') fairway++;
+            else if (shot.result.landing === 'rough-left') leftRough++;
+            else if (shot.result.landing === 'rough-right') rightRough++;
+            else other++;
+          }
+
+          if (shot.distance && shot.result.direction) {
+            if (shot.result.direction.includes('short')) ironShort++;
+            else if (shot.result.direction.includes('long')) ironLong++;
+            else ironAccurate++;
+          }
+        });
+      });
+
+      const frontAcc = frontNineShots > 0 ? Math.round((frontNineAccurate / frontNineShots) * 100) : 0;
+      const backAcc = backNineShots > 0 ? Math.round((backNineAccurate / backNineShots) * 100) : 0;
+      const overallAcc = (frontNineShots + backNineShots) > 0 
+        ? Math.round(((frontNineAccurate + backNineAccurate) / (frontNineShots + backNineShots)) * 100) 
+        : 0;
+
+      let teeTendency = '';
+      if (fairway > leftRough && fairway > rightRough) {
+        teeTendency = '✅ 페어웨이 적중률이 높습니다!';
+      } else if (rightRough > leftRough) {
+        teeTendency = '⚠️ 우측 편향이 심했습니다.';
+      } else if (leftRough > rightRough) {
+        teeTendency = '⚠️ 좌측 편향이 심했습니다.';
+      } else {
+        teeTendency = '양쪽 러프에 고르게 분포되었습니다.';
+      }
+
+      let ironTendency = '';
+      const totalIron = ironShort + ironAccurate + ironLong;
+      if (totalIron === 0) {
+        ironTendency = '거리 데이터가 기록되지 않았습니다.';
+      } else if (ironShort > ironLong && ironShort > ironAccurate) {
+        ironTendency = `⚠️ 아이언샷의 ${Math.round((ironShort/totalIron)*100)}%가 짧았습니다. 한 클럽 더 사용을 권장합니다.`;
+      } else if (ironLong > ironShort && ironLong > ironAccurate) {
+        ironTendency = `⚠️ 아이언샷의 ${Math.round((ironLong/totalIron)*100)}%가 길었습니다.`;
+      } else {
+        ironTendency = '✅ 거리 컨트롤이 좋았습니다!';
+      }
+
+      return {
+        frontNineAccuracy: frontAcc,
+        backNineAccuracy: backAcc,
+        overallAccuracy: overallAcc,
+        teeShot: { fairway, leftRough, rightRough, other, tendency: teeTendency },
+        ironShot: { short: ironShort, accurate: ironAccurate, long: ironLong, tendency: ironTendency }
+      };
+    }
+
+    // ========================================
+    // 3. 클럽 분석
+    // ========================================
+    window.showClubAnalysis = function() {
+      const resultDiv = document.getElementById('analysis-result');
+      if (!resultDiv) return;
+
+      const analysis = analyzeClubAccuracy();
+
+      let html = `
+        <h2 class="section-title">🎯 클럽 분석</h2>
+        <p style="margin-bottom: 16px; opacity: 0.8;">
+          각 클럽별 사용 통계와 정확도 분석
+        </p>
+      `;
+
+      if (analysis.length === 0) {
+        html += '<p style="text-align:center; opacity:0.7;">아직 충분한 데이터가 없습니다.</p>';
+      } else {
+        analysis.forEach(club => {
+          html += `
+            <div style="margin-bottom: 16px; padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--sand);">
+              <h3 style="font-size: 15px; color: var(--green-primary); margin-bottom: 8px;">${club.name}</h3>
+              <div class="par-summary" style="margin: 0;">
+                <div class="par-summary-row"><span>사용 횟수</span><span><b>${club.count}회</b></span></div>
+                <div class="par-summary-row"><span>온그린 성공</span><span><b>${club.onGreen}회 (${club.onGreenRate}%)</b></span></div>
+                ${club.avgDistance ? `<div class="par-summary-row"><span>평균 거리</span><span><b>${club.avgDistance}m</b></span></div>` : ''}
+                ${club.shortCount > 0 ? `<div class="par-summary-row"><span>짧았던 샷</span><span><b>${club.shortCount}회</b></span></div>` : ''}
+                ${club.longCount > 0 ? `<div class="par-summary-row"><span>길었던 샷</span><span><b>${club.longCount}회</b></span></div>` : ''}
+              </div>
+              ${club.tendency ? `<p style="margin-top: 8px; font-size: 13px; padding: 8px; background: var(--sand); border-radius: 8px;">${club.tendency}</p>` : ''}
+            </div>
+          `;
+        });
+      }
+
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    };
+
+    // ========================================
+    // 4. 개선 가이드
+    // ========================================
+    window.showImprovementGuide = function() {
+      const resultDiv = document.getElementById('analysis-result');
+      if (!resultDiv) return;
+
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+      if (rounds.length < 3) {
+        resultDiv.innerHTML = `
+          <h2 class="section-title">💡 개선 가이드</h2>
+          <p style="text-align:center; opacity:0.7; padding: 20px;">
+            신뢰할 수 있는 분석을 위해 최소 3라운드 이상의 데이터가 필요합니다.<br>
+            현재: ${rounds.length}라운드
+          </p>
+        `;
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      const weaknesses = analyzeWeaknesses(rounds);
+      const clubUsage = analyzeClubUsageStats(rounds);
+
+      resultDiv.innerHTML = `
+        <h2 class="section-title">💡 개선 가이드</h2>
+        <p style="margin-bottom: 16px; opacity: 0.8;">
+          데이터 기반 약점 진단 및 개선 방향
+        </p>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">⚠️ 약점 진단</h3>
+        ${weaknesses.map((w, idx) => `
+          <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 12px; border-left: 4px solid ${w.priority === 'high' ? 'var(--red)' : 'var(--blue)'};">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 18px;">${w.priority === 'high' ? '🔴' : '🟡'}</span>
+              <strong style="font-size: 15px;">${idx + 1}. ${w.name}</strong>
+              ${w.priority === 'high' ? '<span style="background: var(--red); color: white; padding: 2px 8px; border-radius: 8px; font-size: 11px;">최우선</span>' : ''}
+            </div>
+            <div class="par-summary" style="margin: 8px 0;">
+              <div class="par-summary-row"><span>현재</span><span><b>${w.current}</b></span></div>
+              <div class="par-summary-row"><span>목표</span><span><b>${w.target}</b></span></div>
+              ${w.effect ? `<div class="par-summary-row"><span>개선 효과</span><span><b>${w.effect}</b></span></div>` : ''}
+            </div>
+            ${w.advice ? `<p style="font-size: 13px; opacity: 0.8; margin-top: 8px;">💡 ${w.advice}</p>` : ''}
+          </div>
+        `).join('')}
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🏌️ 클럽 사용 통계</h3>
+        
+        <div style="margin-bottom: 12px;">
+          <strong style="font-size: 14px; color: var(--brown);">가장 많이 사용한 클럽</strong>
+          <div style="margin-top: 8px;">
+            ${clubUsage.mostUsed.slice(0, 5).map((c, idx) => `
+              <div style="padding: 6px 0; border-bottom: 1px solid var(--sand); display: flex; justify-content: space-between;">
+                <span>${idx + 1}. ${c.name}</span>
+                <span><b>${c.count}회</b></span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        ${clubUsage.mostAccurate.length > 0 ? `
+          <div style="margin-bottom: 12px;">
+            <strong style="font-size: 14px; color: var(--brown);">가장 정확한 클럽 (온그린율)</strong>
+            <div style="margin-top: 8px;">
+              ${clubUsage.mostAccurate.slice(0, 5).map((c, idx) => `
+                <div style="padding: 6px 0; border-bottom: 1px solid var(--sand); display: flex; justify-content: space-between;">
+                  <span>${idx + 1}. ${c.name}</span>
+                  <span><b>${c.rate}%</b> (${c.onGreen}/${c.total})</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">💡 맞춤 조언</h3>
+        <div style="padding: 12px; background: var(--sand); border-radius: 12px; font-size: 14px; line-height: 1.6;">
+          ${generateCustomAdvice(weaknesses)}
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    };
+
+    function analyzeWeaknesses(rounds) {
+      const weaknesses = [];
+      const analysis = analyzeAllRounds(rounds);
+      const holeAvg = analyzeHoleAverages(rounds);
+
+      // 1. 퍼팅 분석
+      if (analysis.avgPutts > 2.0) {
+        const current = `${analysis.avgPutts}개/홀 (${Math.round(analysis.avgPutts * 18)}개)`;
+        const target = '2.0개/홀 (36개)';
+        const effect = `-${Math.round((analysis.avgPutts - 2.0) * 18)}타`;
+        weaknesses.push({
+          name: '퍼팅',
+          priority: 'high',
+          current,
+          target,
+          effect,
+          advice: '3퍼팅을 줄이고 1m 이내 퍼팅 성공률을 높이세요. 그린 리딩 연습도 필요합니다.'
+        });
+      }
+
+      // 2. Par별 평균
+      const parDiffs = [
+        { name: 'Par 3', diff: parseFloat(holeAvg.par3Diff), count: 4 },
+        { name: 'Par 4', diff: parseFloat(holeAvg.par4Diff), count: 10 },
+        { name: 'Par 5', diff: parseFloat(holeAvg.par5Diff), count: 4 }
+      ];
+      
+      parDiffs.sort((a, b) => b.diff - a.diff);
+      
+      if (parDiffs[0].diff > 1.2) {
+        const current = `${(3 + parDiffs[0].diff).toFixed(1)}타`;
+        const target = `${(3 + 1.0).toFixed(1)}타 (보기 플레이)`;
+        const effect = `-${Math.round((parDiffs[0].diff - 1.0) * parDiffs[0].count)}타`;
+        weaknesses.push({
+          name: `${parDiffs[0].name} 홀`,
+          priority: parDiffs[0].diff > 1.5 ? 'high' : 'medium',
+          current,
+          target,
+          effect,
+          advice: parDiffs[0].name === 'Par 4' 
+            ? '티샷 정확도와 세컨샷 안정성을 개선하세요. 보기 플레이를 목표로 하면 스코어가 줄어듭니다.'
+            : '전략적인 클럽 선택과 안정적인 플레이에 집중하세요.'
+        });
+      }
+
+      // 3. 페어웨이 안착률
+      if (analysis.fairwayHitRate < 65) {
+        weaknesses.push({
+          name: '티샷 정확도',
+          priority: 'medium',
+          current: `${analysis.fairwayHitRate}%`,
+          target: '70%',
+          effect: '-2~3타 (추정)',
+          advice: '방향성을 우선하고 거리는 차선으로 두세요. 필요시 드라이버 대신 3우드를 고려하세요.'
+        });
+      }
+
+      // 4. GIR
+      if (analysis.girRate < 40) {
+        weaknesses.push({
+          name: '그린 적중률 (GIR)',
+          priority: 'medium',
+          current: `${analysis.girRate}%`,
+          target: '45%',
+          effect: '-1~2타 (추정)',
+          advice: '클럽 선택을 신중하게 하고, 그린 중앙을 노리세요. 거리 정확도가 핵심입니다.'
+        });
+      }
+
+      return weaknesses.slice(0, 4); // 최대 4개
+    }
+
+    function analyzeClubUsageStats(rounds) {
+      const clubStats = {};
+
+      rounds.forEach(round => {
+        round.holes.forEach(hole => {
+          if (!hole.shots) return;
+
+          hole.shots.forEach(shot => {
+            // 리커버리샷은 클럽 사용 통계에서 제외
+            if (shot.isRecovery) return;
+            
+            const clubId = shot.club;
+            if (!clubId) return;
+
+            if (!clubStats[clubId]) {
+              clubStats[clubId] = { count: 0, onGreen: 0 };
+            }
+
+            clubStats[clubId].count++;
+            if (shot.result.onGreen) clubStats[clubId].onGreen++;
+          });
+        });
+      });
+
+      const mostUsed = CLUBS.map(club => ({
+        name: club.name,
+        id: club.id,
+        count: clubStats[club.id]?.count || 0
+      }))
+      .filter(c => c.count > 0)
+      .sort((a, b) => b.count - a.count);
+
+      const mostAccurate = CLUBS.map(club => {
+        const stats = clubStats[club.id];
+        if (!stats || stats.count < 5) return null; // 최소 5회 이상 사용
+        
+        const rate = Math.round((stats.onGreen / stats.count) * 100);
+        return {
+          name: club.name,
+          rate,
+          onGreen: stats.onGreen,
+          total: stats.count
+        };
+      })
+      .filter(c => c !== null)
+      .sort((a, b) => b.rate - a.rate);
+
+      return { mostUsed, mostAccurate };
+    }
+
+    function generateCustomAdvice(weaknesses) {
+      if (weaknesses.length === 0) {
+        return '✅ 전반적으로 안정적인 플레이를 하고 있습니다! 현재 수준을 유지하면서 세부적인 부분을 개선해 나가세요.';
+      }
+
+      let advice = '';
+      const highPriority = weaknesses.filter(w => w.priority === 'high');
+      
+      if (highPriority.length > 0) {
+        advice += `▸ <b>${highPriority[0].name}</b>에 집중하세요. 이 부분만 개선해도 ${highPriority[0].effect}의 효과가 있습니다.<br><br>`;
+      }
+
+      if (weaknesses.length > 1) {
+        advice += `▸ 우선순위: ${weaknesses.map((w, i) => `${i+1}. ${w.name}`).join(' → ')}<br><br>`;
+      }
+
+      advice += '▸ 한 번에 하나씩 집중적으로 개선하는 것이 효과적입니다.';
+
+      return advice;
+    }
+
+    function analyzeAllRounds(rounds) {
+      let totalGross = 0;
+      let bestGross = 999;
+      let recentGross = [];
+      
+      let totalFairwayHits = 0, totalTeeShots = 0;
+      let totalGIR = 0, totalApproaches = 0;
+      let totalPutts = 0, totalHoles = 0;
+
+      rounds.forEach((round, idx) => {
+        const s = calcRoundScores(round);
+        totalGross += s.gross;
+        if (s.gross < bestGross) bestGross = s.gross;
+        
+        if (idx >= rounds.length - 5) {
+          recentGross.push(s.gross);
+        }
+
+        round.holes.forEach(hole => {
+          totalHoles++;
+          totalPutts += (hole.putting?.putts) || 0;
+
+          if (hole.shots) {
+            // 티샷 분석 (리커버리샷 제외)
+            hole.shots.forEach(shot => {
+              if (shot.isRecovery) return;
+              
+              if (shot.type === 'tee') {
+                totalTeeShots++;
+                if (shot.result.landing === 'fairway') totalFairwayHits++;
+              }
+            });
+
+            // GIR 계산: par - 2 이하의 샷 수에 온그린 성공 여부
+            const shotsToGreen = hole.shots.findIndex(s => !s.isRecovery && s.result.onGreen);
+            if (shotsToGreen !== -1) {
+              // 리커버리샷 제외한 실제 샷 번호 계산
+              let realShotCount = 0;
+              for (let si = 0; si <= shotsToGreen; si++) {
+                if (!hole.shots[si].isRecovery) realShotCount++;
+              }
+              if (realShotCount <= (hole.par || 4) - 2) totalGIR++;
+            }
+            totalApproaches++; // 홀 단위 GIR 계산용 (분모)
+          }
+        });
+      });
+
+      const avgGross = Math.round(totalGross / rounds.length);
+      const recent5Avg = recentGross.length > 0 
+        ? Math.round(recentGross.reduce((a,b) => a+b, 0) / recentGross.length)
+        : avgGross;
+      
+      const fairwayRate = totalTeeShots > 0 ? Math.round((totalFairwayHits / totalTeeShots) * 100) : 0;
+      const girRate = totalApproaches > 0 ? Math.round((totalGIR / totalApproaches) * 100) : 0;
+      const avgPutts = totalHoles > 0 ? (totalPutts / totalHoles).toFixed(1) : 0;
+
+      let improvement = '';
+      if (rounds.length >= 5) {
+        const firstFive = rounds.slice(0, 5);
+        const firstAvg = firstFive.reduce((sum, r) => sum + calcRoundScores(r).gross, 0) / 5;
+        const diff = avgGross - firstAvg;
+        
+        if (diff < -3) {
+          improvement = `🎉 초기 대비 평균 ${Math.abs(diff).toFixed(1)}타 향상! 꾸준히 발전하고 있습니다.`;
+        } else if (diff > 3) {
+          improvement = `초기 대비 평균 ${diff.toFixed(1)}타 상승했습니다. 기본기 점검이 필요할 수 있습니다.`;
+        } else {
+          improvement = `일정한 실력을 유지하고 있습니다. 특정 약점을 집중 개선하면 돌파구를 찾을 수 있습니다.`;
+        }
+      } else {
+        improvement = `라운드가 더 쌓이면 실력 향상 추세를 분석할 수 있습니다. (현재 ${rounds.length}회)`;
+      }
+
+      return {
+        avgGross,
+        bestGross,
+        recent5Avg,
+        fairwayHitRate: fairwayRate,
+        girRate,
+        avgPutts,
+        improvementTrend: improvement
+      };
+    }
+
+    function analyzeClubAccuracy() {
+      const clubStats = {};
+
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+      rounds.forEach(round => {
+        round.holes.forEach(hole => {
+          if (!hole.shots) return;
+
+          hole.shots.forEach(shot => {
+            // 리커버리샷은 클럽 분석에서 제외
+            if (shot.isRecovery) return;
+            
+            const clubId = shot.club;
+            if (!clubId) return;
+
+            if (!clubStats[clubId]) {
+              clubStats[clubId] = {
+                count: 0,
+                onGreen: 0,
+                distances: [],
+                short: 0,
+                long: 0
+              };
+            }
+
+            clubStats[clubId].count++;
+            if (shot.result.onGreen) clubStats[clubId].onGreen++;
+            
+            if (shot.distance) {
+              const dist = parseInt(shot.distance);
+              if (!isNaN(dist)) clubStats[clubId].distances.push(dist);
+            }
+
+            if (shot.result.direction) {
+              if (shot.result.direction.includes('short')) clubStats[clubId].short++;
+              if (shot.result.direction.includes('long')) clubStats[clubId].long++;
+            }
+          });
+        });
+      });
+
+      const result = [];
+      CLUBS.forEach(club => {
+        const stats = clubStats[club.id];
+        if (!stats || stats.count === 0) return;
+
+        const avgDist = stats.distances.length > 0
+          ? Math.round(stats.distances.reduce((a,b) => a+b, 0) / stats.distances.length)
+          : null;
+
+        const onGreenRate = Math.round((stats.onGreen / stats.count) * 100);
+
+        let tendency = '';
+        if (stats.short > stats.long) {
+          tendency = `⚠️ ${Math.round((stats.short/stats.count)*100)}%의 샷이 짧았습니다.`;
+        } else if (stats.long > stats.short) {
+          tendency = `${Math.round((stats.long/stats.count)*100)}%의 샷이 길었습니다.`;
+        }
+
+        result.push({
+          name: club.name,
+          count: stats.count,
+          onGreen: stats.onGreen,
+          onGreenRate,
+          avgDistance: avgDist,
+          shortCount: stats.short,
+          longCount: stats.long,
+          tendency
+        });
+      });
+
+      return result.sort((a, b) => b.count - a.count);
+    }
+
+
+    // ========================================
+    // SETTINGS PAGE
+    // ========================================
+    function renderSettingsPage(container) {
+      container.classList.add('scrollable');
+      container.innerHTML = `
+        <h1 class="page-title">⚙️ 설정</h1>
+
+
+        <div class="section">
+          <h2 class="section-title">백업 / 복원</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8; line-height: 1.4;">
+            • 현재 기기/브라우저에 데이터가 자동 저장됩니다.<br>
+            • 휴대폰 교체/브라우저 초기화 대비를 위해 백업 파일을 보관하세요.
+          </p>
+
+          <div class="button-group">
+            <button class="secondary-btn" onclick="downloadBackup()">📥 백업 파일 다운로드</button>
+            <button class="secondary-btn" onclick="triggerBackupRestore()">📤 백업 파일로 복원</button>
+          </div>
+
+          <p style="opacity: 0.55; font-size: 12px; margin-top: 10px; line-height: 1.4;">
+            • 백업 파일 이름: <b>YS_golf_backup.json</b><br>
+            • 복원하면 현재 데이터가 백업 파일 내용으로 교체됩니다.
+          </p>
+        </div>
+
+
+        
+        
+        <div class="section">
+          <h2 class="section-title">스코어카드 분석 (Claude AI)</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8;">
+            API Key: <b>${getClaudeApiKeyDisplay()}</b>
+          </p>
+
+          <div class="button-group">
+            <button class="secondary-btn" onclick="promptClaudeApiKey()">🔑 API Key 설정</button>
+            <button class="secondary-btn" onclick="testClaudeApiKey()">🧪 연결 테스트</button>
+          </div>
+
+          <p style="opacity: 0.55; font-size: 12px; margin-top: 10px; line-height: 1.4;">
+            • 스코어카드 이미지 분석에 Anthropic Claude API를 사용합니다.<br>
+            • API Key는 이 기기 브라우저에만 저장되며 외부로 전송되지 않습니다.<br>
+            • <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);">console.anthropic.com</a> 에서 발급받을 수 있습니다.
+          </p>
+        </div>
+
+<div class="section">
+          <h2 class="section-title">등록된 코스 관리</h2>
+          <p style="margin-bottom: 16px; opacity: 0.8;">
+            총 ${appState.data.courses.length}개 코스 등록됨
+          </p>
+          
+          ${appState.data.courses.map(course => {
+            const totalPar = course.par.reduce((a,b) => a+b, 0);
+            return `
+              <div class="course-btn" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="course-info">
+                  <div class="course-name">${escHtml(course.name)}</div>
+                  <div class="course-details">${escHtml(course.location) || '위치 미등록'} • ${course.holes}홀 • Par ${totalPar}</div>
+                </div>
+                <div class="btn-group">
+                  <button class="edit-btn" onclick="openCourseEdit('${course.id}')">수정</button>
+                  <button class="delete-btn" onclick="deleteCourse('${course.id}')">삭제</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+          
+          <button class="secondary-btn" onclick="openCourseRegistration()">
+            ➕ 새 코스 등록하기
+          </button>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">골프백 구성 & 거리 정보</h2>
+          <p style="margin-bottom: 10px; opacity: 0.6; font-size: 12px;">
+            클럽 이름과 거리(m)를 설정하세요. 클럽 추천 및 샷 입력에 사용됩니다.
+          </p>
+
+          <div style="margin-bottom: 8px; display: flex; gap: 12px; font-size: 11px; opacity: 0.7;">
+            <span><span style="display:inline-block;width:10px;height:10px;background:#e53e3e;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 사용자 설정</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#38a169;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 라운드 학습</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#ecc94b;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 기본값</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; padding: 4px 8px; margin-bottom: 2px;">
+            <div></div>
+            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">클럽</div>
+            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">캐리</div>
+            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">토탈</div>
+            <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">맥스</div>
+          </div>
+
+          <div id="club-bag-list" style="display: flex; flex-direction: column; gap: 5px;">
+            ${CLUBS.map((club, idx) => {
+              const dist = CLUB_DISTANCES[club.id];
+              const isCustom = dist && dist.customSet;
+              const isLearned = dist && dist.learned && !isCustom;
+              const sqColor = isCustom ? '#e53e3e' : (isLearned ? '#38a169' : '#ecc94b');
+              const carry = dist && dist.carry > 0 ? dist.carry : '';
+              const total = dist && dist.total > 0 ? dist.total : '';
+              const max = dist && dist.max > 0 ? dist.max : '';
+              return `
+                <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; align-items: center; padding: 4px 8px; background: var(--sand); border-radius: 8px;">
+                  <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;"></span>
+                  <input type="text" id="club-name-${idx}"
+                    value="${escHtml(club.name)}"
+                    placeholder="클럽명"
+                    style="padding: 5px 4px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; font-weight: 600; background: white; text-align: center; width: 100%; box-sizing: border-box;">
+                  <input type="number" id="club-carry-${idx}"
+                    value="${carry}" placeholder="-"
+                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
+                    inputmode="numeric" min="0" max="400">
+                  <input type="number" id="club-total-${idx}"
+                    value="${total}" placeholder="-"
+                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
+                    inputmode="numeric" min="0" max="400">
+                  <input type="number" id="club-max-${idx}"
+                    value="${max}" placeholder="-"
+                    style="padding: 5px 2px; border: 2px solid var(--sand); border-radius: 6px; font-size: 13px; text-align: center; background: white; width: 100%; box-sizing: border-box;"
+                    inputmode="numeric" min="0" max="400">
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <button class="secondary-btn" style="margin-top: 10px;" onclick="addClubToBag()">
+            ➕ 클럽 추가
+          </button>
+          <button class="primary-btn" style="margin-top: 10px;" onclick="saveClubBagFromUI()">
+            💾 골프백 저장
+          </button>
+          <button class="secondary-btn" style="margin-top: 8px;" onclick="resetClubBag()">
+            🔄 기본 골프백으로 초기화
+          </button>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">데이터</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8;">
+            총 ${appState.data.rounds.length}개 라운드 기록
+          </p>
+          <button class="primary-btn" style="background: var(--red);" onclick="clearAllData()">
+            모든 데이터 삭제
+          </button>
+        </div>
+
+        <div class="section" style="text-align: center;">
+          <h3 style="margin-bottom: 8px;">Golf Round Analyzer</h3>
+          <p style="opacity: 0.6;">Version 10.0.0</p>
+          <p style="opacity: 0.6; font-size: 12px; margin-top: 8px;">
+            Claude AI 스코어카드 분석 • 클럽 거리 자동 학습
+          </p>
+        </div>
+      `;
+    }
+
+    window.deleteCourse = function(courseId) {
+      if (confirm('이 코스를 삭제하시겠습니까?')) {
+        appState.data.courses = appState.data.courses.filter(c => c.id !== courseId);
+        saveData();
+        render();
+      }
+    };
+
+    // ========================================
+    // GOLF BAG MANAGEMENT (클럽 추가/이름변경/거리설정)
+    // ========================================
+    window.addClubToBag = function() {
+      const newId = 'club_' + Date.now();
+      CLUBS.push({ id: newId, name: '' });
+      render();
+      setTimeout(() => {
+        const nameInput = document.getElementById('club-name-' + (CLUBS.length - 1));
+        if (nameInput) nameInput.focus();
+      }, 50);
+    };
+
+    window.saveClubBagFromUI = function() {
+      const newClubs = [];
+      const customDistances = {};
+      const len = CLUBS.length;
+
+      for (let i = 0; i < len; i++) {
+        const nameInput = document.getElementById('club-name-' + i);
+        const carryInput = document.getElementById('club-carry-' + i);
+        const totalInput = document.getElementById('club-total-' + i);
+        const maxInput = document.getElementById('club-max-' + i);
+
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) continue; // 이름 없으면 건너뜀
+
+        const carry = carryInput ? parseInt(carryInput.value, 10) : 0;
+        const total = totalInput ? parseInt(totalInput.value, 10) : 0;
+        const max = maxInput ? parseInt(maxInput.value, 10) : 0;
+
+        const id = CLUBS[i] ? CLUBS[i].id : ('club_' + Date.now() + '_' + i);
+        newClubs.push({ id, name });
+
+        if ((Number.isFinite(carry) && carry > 0) || (Number.isFinite(total) && total > 0)) {
+          const t = total || carry || 0;
+          const c = carry || Math.round(t * 0.92);
+          const m = max || Math.round(t * 1.05);
+          customDistances[id] = { carry: c, total: t, max: m, customSet: true };
+          CLUB_DISTANCES[id] = { carry: c, total: t, max: m, customSet: true };
+        }
+      }
+
+      if (newClubs.length === 0) {
+        alert('최소 1개 이상의 클럽이 필요합니다.\n클럽 이름을 입력해 주세요.');
+        return;
+      }
+
+      CLUBS = newClubs;
+      saveCustomClubs();
+      saveCustomClubDistances(customDistances);
+      alert('✅ 골프백이 저장되었습니다.');
+      render();
+    };
+
+    window.resetClubBag = function() {
+      if (confirm('골프백을 기본 구성으로 초기화하시겠습니까?\n\n사용자가 추가/수정한 클럽과 거리가 모두 삭제됩니다.')) {
+        try { localStorage.removeItem(CUSTOM_CLUBS_KEY); } catch(_) {}
+        try { localStorage.removeItem(CUSTOM_CLUB_DISTANCES_KEY); } catch(_) {}
+        CLUBS = JSON.parse(JSON.stringify(DEFAULT_CLUBS));
+        CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
+        updateClubDistancesFromRounds();
+        alert('✅ 골프백이 기본 구성으로 초기화되었습니다.');
+        render();
+      }
+    };
+
+    // ========================================
+    // DATA MANAGEMENT
+    // ========================================
+    window.clearAllData = function() {
+      if (confirm('모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        appState.data = { rounds: [], courses: [...DEFAULT_COURSES] };
+        saveData();
+        alert('모든 데이터가 삭제되었습니다.');
+        render();
+      }
+    };
+
+    // ========================================
+    // PAGE ROUTING (for new course flow)
+    // ========================================
+    function renderByPage(container) {
+      switch (appState.currentPage) {
+        case 10: renderExistingCourseSelectionPage(container); break;
+        case 12: renderTeeboxSelectionPage(container); break;
+        default:
+          render();
+      }
+    }
+
+    // Override render for page routing
+    const originalRender = render;
+    render = function() {
+      try {
+        if ((appState.currentPage === 10 || appState.currentPage === 12) && !appState.activeRound) {
+          const app = document.getElementById('app');
+          if (!app) return;
+          app.innerHTML = '';
+          const container = document.createElement('div');
+          container.className = 'page-container';
+          renderByPage(container);
+          app.appendChild(container);
+          if (appState.currentPage !== 0) app.appendChild(renderBottomNav());
+        } else {
+          originalRender();
+        }
+      } catch (e) {
+        console.error('Render (page routing) failed:', e);
+        showErrorBanner('렌더링 오류: ' + (e.message || '알 수 없는 오류'));
+      }
+    };
+
+
+    // ========================================
+    // SCORECARD UPLOAD (via Claude Vision API)
+    // ========================================
+    // ✅ 프록시 서버 없이 브라우저에서 직접 Claude API를 호출합니다.
+    // ✅ API Key는 사용자가 설정 페이지에서 입력합니다.
+
+    window.uploadCamera = function() {
+      document.getElementById('scorecard-camera').click();
+    };
+
+    window.uploadGallery = function() {
+      document.getElementById('scorecard-upload').click();
+    };
+
+    // API Key 연결 테스트
+    window.testClaudeApiKey = async function() {
+      const apiKey = getClaudeApiKey();
+      if (!apiKey) {
+        alert('❌ API Key가 설정되지 않았습니다.\n설정에서 먼저 API Key를 입력해 주세요.');
+        return;
+      }
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 32,
+            messages: [{ role: 'user', content: 'Say OK' }]
+          })
+        });
+        if (res.ok) {
+          alert('✅ Claude API 연결 성공!');
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert('❌ 연결 실패: ' + (errData.error?.message || res.status));
+        }
+      } catch (e) {
+        alert('❌ 네트워크 오류: ' + e.message);
+      }
+    };
+
+    window.handleScoreCardUpload = async function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      event.target.value = '';
+
+      const apiKey = getClaudeApiKey();
+
+      if (!apiKey) {
+        alert('❌ API Key가 설정되지 않았습니다.\n\n설정(⚙️) → 스코어카드 분석(Claude AI) → API Key 설정에서 입력해 주세요.');
+        return;
+      }
+
+      document.getElementById('upload-loading').classList.add('active');
+
+      try {
+        // ✅ 이미지 자동 최적화(리사이즈 + JPEG 변환) 후 전송
+        const prepared = await fileToBase64(file);
+        const base64Data = prepared.base64Data;
+        const mimeType = prepared.mimeType;
+
+        const extractedData = await callClaudeVision(apiKey, base64Data, mimeType);
+        fillCourseFromAI(extractedData);
+
+      } catch (error) {
+        console.error('Scorecard error:', error);
+        alert('❌ 스코어카드 처리 실패:\n' + (error && error.message ? error.message : String(error)));
+      } finally {
+        document.getElementById('upload-loading').classList.remove('active');
+      }
+    };
+
+    
+    // ========================================
+    // SCORECARD IMAGE PREP (resize + JPEG encode)
+    // ========================================
+    // 반환: { base64Data, mimeType }
+    // - base64Data는 'data:image/..;base64,' 접두사 없는 순수 Base64 문자열
+    // - mimeType은 서버로 전달할 MIME (기본 image/jpeg)
+    async function fileToBase64(file) {
+      const MAX_DIM = 2000;     // 긴 변 기준 최대 px
+      const JPEG_QUALITY = 0.82;
+
+      // HEIC/HEIF 안내 (일부 브라우저/서버에서 처리 불가)
+      const type = (file && file.type ? String(file.type) : '').toLowerCase();
+      const isHeic = type.includes('heic') || type.includes('heif');
+
+      // 작은 JPEG/PNG는 그대로 보내도 무방 (불필요한 재인코딩 방지)
+      try {
+        if (!isHeic && file && file.size && file.size <= 900 * 1024 && (type === 'image/jpeg' || type === 'image/png' || type === 'image/webp')) {
+          const base64DataRaw = await _readFileAsBase64(file);
+          return { base64Data: base64DataRaw, mimeType: (type || 'image/jpeg') };
+        }
+      } catch (_) {
+        // 아래에서 재시도
+      }
+
+      // ✅ 이미지 디코딩 → 캔버스 리사이즈 → JPEG로 재인코딩
+      let bitmap = null;
+      try {
+        if ('createImageBitmap' in window) {
+          bitmap = await createImageBitmap(file);
+        } else {
+          // createImageBitmap 미지원 브라우저 fallback
+          const dataUrl = await _readFileAsDataUrl(file);
+          const img = await _loadImage(dataUrl);
+          bitmap = img;
+        }
+      } catch (e) {
+        if (isHeic) {
+          throw new Error('HEIC(아이폰 사진) 형식으로 보입니다.\n\n해결 방법:\n1) 사진을 "스크린샷"으로 저장(JPEG/PNG) 후 업로드\n또는\n2) iPhone 설정 > 카메라 > 포맷 > "호환성 우선"으로 변경 후 다시 촬영\n\n원인: 이 브라우저/서버 조합에서 HEIC를 처리하지 못할 수 있습니다.');
+        }
+        throw new Error('이미지 파일을 열 수 없습니다.\n파일 형식/손상 여부를 확인 후 다시 시도해 주세요.');
+      }
+
+      const srcW = bitmap.width || bitmap.naturalWidth || 0;
+      const srcH = bitmap.height || bitmap.naturalHeight || 0;
+      if (!srcW || !srcH) {
+        throw new Error('이미지 크기를 확인할 수 없습니다. 다른 이미지로 다시 시도해 주세요.');
+      }
+
+      const scale = Math.min(1, MAX_DIM / Math.max(srcW, srcH));
+      const outW = Math.max(1, Math.round(srcW * scale));
+      const outH = Math.max(1, Math.round(srcH * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (!ctx) throw new Error('브라우저에서 이미지 변환을 지원하지 않습니다.');
+      ctx.drawImage(bitmap, 0, 0, outW, outH);
+
+      // 메모리 정리
+      try { if (bitmap && bitmap.close) bitmap.close(); } catch (_) {}
+
+      const blob = await _canvasToBlob(canvas, 'image/jpeg', JPEG_QUALITY);
+      const base64Data = await _readBlobAsBase64(blob);
+
+      return { base64Data, mimeType: 'image/jpeg' };
+    }
+
+    function _readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function _readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          const idx = s.indexOf(',');
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function _loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+        img.src = src;
+      });
+    }
+
+    function _canvasToBlob(canvas, mime, quality) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('이미지 변환에 실패했습니다.'));
+          resolve(blob);
+        }, mime, quality);
+      });
+    }
+
+    function _readBlobAsBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          const idx = s.indexOf(',');
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        reader.onerror = () => reject(new Error('이미지 변환 결과를 읽을 수 없습니다.'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function callClaudeVision(apiKey, base64Data, mimeType) {
+      const TIMEOUT_MS = 60000; // Claude Vision은 좀 더 시간 필요
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      const systemPrompt = `You are a golf scorecard analyzer. Extract course information from the scorecard image and return ONLY a valid JSON object (no markdown, no backticks, no explanation).
+
+Required JSON format:
+{
+  "name": "Course Name",
+  "location": "Location (city/region)",
+  "holes": 18,
+  "par": [4,3,5,4,4,3,5,4,4, 4,3,5,4,4,3,5,4,4],
+  "distances_blue": [380,170,520,400,350,190,530,410,360, 390,165,510,405,345,185,525,415,355],
+  "distances_white": [360,155,500,380,330,175,510,390,340, 370,150,490,385,325,170,505,395,335],
+  "stroke_index": [7,15,3,1,11,17,5,9,13, 8,16,4,2,12,18,6,10,14]
+}
+
+Rules:
+- "par" array: par value for each hole (3, 4, or 5)
+- "distances_blue": blue/back tee distances in meters (or yards as shown)
+- "distances_white": white/front tee distances in meters (or yards as shown)
+- "stroke_index": handicap stroke index for each hole (1-18)
+- If 9-hole course, set "holes": 9 and arrays should have 9 elements
+- If a value is unreadable, use 0 for distances and 4 for par
+- For stroke_index, if labeled as "handicap", "hcp", "hdcp", or "index", extract those values
+- Return ONLY the JSON object, nothing else`;
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2048,
+            system: systemPrompt,
+            messages: [{
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mimeType || 'image/jpeg',
+                    data: base64Data
+                  }
+                },
+                {
+                  type: 'text',
+                  text: '이 스코어카드에서 코스 정보를 추출해서 JSON으로 반환해 주세요.'
+                }
+              ]
+            }]
+          }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || '';
+
+          if (response.status === 401) {
+            throw new Error('API Key가 유효하지 않습니다.\n\n설정(⚙️) → API Key 설정에서 올바른 키를 입력해 주세요.');
+          }
+          if (response.status === 429) {
+            throw new Error('API 요청 한도 초과입니다.\n잠시 후 다시 시도해 주세요.');
+          }
+          if (response.status === 413 || errMsg.includes('too large')) {
+            throw new Error('이미지가 너무 큽니다.\n스코어카드를 꽉 차게 촬영하거나 해상도를 낮춰 주세요.');
+          }
+          throw new Error('Claude API 오류: ' + response.status + '\n' + errMsg);
+        }
+
+        const result = await response.json();
+
+        // Claude 응답에서 텍스트 추출
+        const textContent = result.content
+          .filter(c => c.type === 'text')
+          .map(c => c.text)
+          .join('');
+
+        // JSON 파싱 (마크다운 코드블록 제거)
+        const cleaned = textContent
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+
+        let parsed;
+        try {
+          parsed = JSON.parse(cleaned);
+        } catch (parseErr) {
+          // JSON 부분만 추출 시도
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('AI 응답을 JSON으로 파싱할 수 없습니다.\n다른 이미지로 다시 시도해 주세요.\n\n응답: ' + cleaned.slice(0, 200));
+          }
+        }
+
+        return parsed;
+
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          throw new Error('Claude API 응답이 지연되어 중단했습니다. (60초)\n\n네트워크 상태를 확인 후 다시 시도해 주세요.');
+        }
+        throw e;
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+function fillCourseFromAI(data) {
+  const holes = data.holes || 18;
+  let par = data.par || [];
+  let distBlue = data.distances_blue || [];
+  let distWhite = data.distances_white || [];
+
+  // ✅ Stroke Index(또는 Handicap 열) 후보 키들
+  const rawIdx =
+    data.stroke_index ??
+    data.strokeIndex ??
+    data.stroke_index_mens ??
+    data.index ??
+    data.mens_index ??
+    data.mensIndex ??
+    data.mens_hcp ??
+    data.mensHcp ??
+    data.mens_hdcp ??
+    data.mensHdcp ??
+    data.handicap ??
+    data.hcp ??
+    data.hdc ??
+    data.hdcp ??
+    data.mens_handicap ??
+    data.mensHandicap ??
+    [];
+
+  // ✅ 다양한 형태(배열/문자열/객체 out+in)를 1개의 배열로 정규화
+  let strokeIdx = [];
+  if (Array.isArray(rawIdx)) {
+    strokeIdx = rawIdx;
+  } else if (rawIdx && typeof rawIdx === 'object') {
+    // 예: { out:[...], in:[...] } 또는 { front9:[...], back9:[...] }
+    const outArr = rawIdx.out || rawIdx.front9 || rawIdx.front_9 || rawIdx.out9 || rawIdx.out_9 || [];
+    const inArr = rawIdx.in || rawIdx.back9 || rawIdx.back_9 || rawIdx.in9 || rawIdx.in_9 || [];
+    if (Array.isArray(outArr) || Array.isArray(inArr)) {
+      strokeIdx = []
+        .concat(Array.isArray(outArr) ? outArr : [])
+        .concat(Array.isArray(inArr) ? inArr : []);
+    }
+  } else if (typeof rawIdx === 'string') {
+    // 예: "5,11,7,15,1,..." 또는 "5 11 7 ..."
+    const nums = rawIdx.match(/\d+/g);
+    strokeIdx = nums ? nums.map(n => parseInt(n, 10)) : [];
+  }
+
+  // 길이 보정(기본값 적용)
+  while (par.length < holes) par.push(4);
+  while (distBlue.length < holes) distBlue.push(0);
+  while (distWhite.length < holes) distWhite.push(0);
+  if (!Array.isArray(strokeIdx)) strokeIdx = [];
+  while (strokeIdx.length < holes) strokeIdx.push(strokeIdx.length + 1);
+
+  appState.newCourse = {
+    id: 'course_' + Date.now(),
+    name: data.name || '',
+    location: data.location || '',
+    holes: holes,
+    par: par.slice(0, holes),
+    strokeIndex: strokeIdx.slice(0, holes),
+    distances: {
+      blue: distBlue.slice(0, holes),
+      white: distWhite.slice(0, holes)
+    }
+  };
+  appState.showCourseModal = true;
+  render();
+}
+
+    // ========================================
+    // SCORECARD SHORTCUTS (Round Start)
+    // ========================================
+    window.triggerScorecardCamera = function() {
+      const el = document.getElementById('scorecard-camera');
+      if (el) el.click();
+      else alert('카메라 입력 요소를 찾을 수 없습니다.');
+    };
+
+    window.triggerScorecardGallery = function() {
+      const el = document.getElementById('scorecard-upload');
+      if (el) el.click();
+      else alert('갤러리 입력 요소를 찾을 수 없습니다.');
+    };
+
+
+    // ========================================
+    // AUTO-SAVE & RECOVERY
+    // ========================================
+    function autoSaveProgress() {
+      if (appState.activeRound) {
+        try {
+          const saveData = {
+            activeRound: appState.activeRound,
+            currentHole: appState.currentHole,
+            holePar: appState.holePar,
+            holeDistance: appState.holeDistance,
+            shots: appState.shots,
+            currentShot: appState.currentShot,
+            puttingData: appState.puttingData,
+            selectedTeeBox: appState.selectedTeeBox,
+            timestamp: Date.now()
+          };
+          localStorage.setItem('golf_temp_round', JSON.stringify(saveData));
+          console.log('✅ 진행상황 자동 저장됨');
+        } catch (e) {
+          console.error('자동 저장 실패:', e);
+        }
+      }
+    }
+
+    function checkForRecovery() {
+      try {
+        const temp = localStorage.getItem('golf_temp_round');
+        if (temp) {
+          const saved = JSON.parse(temp);
+          const savedTime = new Date(saved.timestamp);
+          const now = new Date();
+          const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+          
+          // 24시간 이내의 데이터만 복구 제안
+          if (hoursDiff < 24) {
+            appState.recoveryData = saved;
+            appState.showRecoveryModal = true;
+            console.log('🔄 복구 가능한 라운드 발견:', saved);
+          } else {
+            // 오래된 데이터는 삭제
+            localStorage.removeItem('golf_temp_round');
+            console.log('⏰ 오래된 임시 저장 데이터 삭제');
+          }
+        }
+      } catch (e) {
+        console.error('복구 확인 실패:', e);
+      }
+    }
+
+    window.resumeRound = function() {
+      const saved = appState.recoveryData;
+      if (saved) {
+        // 저장된 상태 완전 복원
+        appState.activeRound = saved.activeRound;
+        appState.currentHole = saved.currentHole;
+        appState.holePar = saved.holePar;
+        appState.holeDistance = saved.holeDistance;
+        appState.shots = saved.shots || [];
+        appState.currentShot = saved.currentShot;
+        appState.puttingData = saved.puttingData;
+        appState.selectedTeeBox = saved.selectedTeeBox;
+        
+        // 라운드 페이지로 이동
+        appState.currentPage = 0;
+        appState.showRecoveryModal = false;
+        appState.recoveryData = null;
+        
+        render();
+        console.log('✅ 라운드 복구 완료');
+      }
+    };
+
+    window.discardRecovery = function() {
+      localStorage.removeItem('golf_temp_round');
+      appState.showRecoveryModal = false;
+      appState.recoveryData = null;
+      render();
+      console.log('❌ 복구 취소됨');
+    };
+
+    // ========================================
+    // BROWSER BACK BUTTON PREVENTION
+    // ========================================
+    function preventBackButton() {
+      // 라운드 진행 중일 때만 뒤로가기 차단
+      if (appState.activeRound) {
+        history.pushState(null, '', location.href);
+      }
+    }
+
+    window.addEventListener('popstate', function() {
+      if (appState.activeRound) {
+        // 뒤로가기 막기
+        history.pushState(null, '', location.href);
+        alert('⚠️ 라운드 진행 중입니다.\n\n종료하려면 "라운드 종료" 버튼을 사용하세요.');
+        console.log('🚫 뒤로가기 차단됨 (라운드 진행 중)');
+      }
+    });
+
+    // 페이지 나갈 때 경고
+    window.addEventListener('beforeunload', function(e) {
+      if (appState.activeRound) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    });
+
+    // ========================================
+    // BOOT
+    // ========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      try { loadData(); } catch (e) { console.error('Initial loadData failed:', e); }
+      try { loadCustomClubs(); } catch (e) { console.error('Custom clubs load failed:', e); }
+      try { updateClubDistancesFromRounds(); } catch (e) { console.error('Club distance learning failed:', e); }
+      try { checkForRecovery(); } catch (e) { console.error('Recovery check failed:', e); }
+      try { render(); } catch (e) { console.error('Initial render failed:', e); }
+      try { preventBackButton(); } catch (e) { console.error('Back button prevention failed:', e); }
+    });
+
+</script>
+</body>
+</html>
