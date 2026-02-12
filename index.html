@@ -367,19 +367,19 @@
 
     .select-input {
       width: 100%;
-      padding: clamp(4px, 0.8vh, 8px);
+      padding: clamp(3px, 0.6vh, 6px);
       border: 2px solid var(--sand);
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       font-family: 'Noto Sans KR', sans-serif;
       background: white;
-      line-height: 1.2;
+      line-height: 1.1;
     }
     
     .select-input option {
-      padding: 2px 6px;
-      font-size: 13px;
-      line-height: 1.1;
+      padding: 1px 4px;
+      font-size: 12px;
+      line-height: 1.05;
     }
 
     /* ========== BUTTONS ========== */
@@ -1659,6 +1659,11 @@ case 4: renderSettingsPage(container); break;
 
       app.appendChild(container);
 
+      // 라운드 진행 중일 때 뒤로가기 방지
+      if (appState.activeRound) {
+        history.pushState(null, '', location.href);
+      }
+
       // 라운드 진행 중이 아닐 때만 하단 네비게이션 표시
       if (!appState.activeRound) {
         // 홈이 아닌 페이지에서 백버튼 표시
@@ -1895,6 +1900,10 @@ window.goToPage = function(page) {
           appState.currentHole = played + 1;
         }
         appState.selectedTeeBox = inProgressRound.teeBox;
+        
+        // 뒤로가기 방지 활성화
+        history.pushState(null, '', location.href);
+        
         render();
       }
     };
@@ -2162,6 +2171,10 @@ if (!course) {
       };
 
       appState.currentHole = holeOrder[0];
+      
+      // 뒤로가기 방지 활성화
+      history.pushState(null, '', location.href);
+      
       render();
     };
 
@@ -5476,6 +5489,9 @@ function fillCourseFromAI(data) {
         appState.currentPage = 0;
         appState.showRecoveryModal = false;
         appState.recoveryData = null;
+        
+        // 뒤로가기 방지 활성화
+        history.pushState(null, '', location.href);
         
         render();
         console.log('✅ 라운드 복구 완료');
