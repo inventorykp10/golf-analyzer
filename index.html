@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#2d5016">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192x192.png">
-  <title>Golf Round Analyzer ⛳ v10</title>
+  <title>Golf Round Analyzer ⛳ v11</title>
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap');
@@ -1206,7 +1206,7 @@
       '60': { carry: 72, total: 73, max: 85 }
     };
 
-    // 학습된 거리 데이터 (라운드 기록에서 자동 계산)
+    // 클럽 거리 데이터 (사용자가 설정에서 수동 관리)
     let CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
 
     // 사용자가 직접 설정한 거리 (localStorage에 저장)
@@ -1230,87 +1230,20 @@
       }
     }
 
-    // 클럽 거리 결정 우선순위: 사용자 수동 설정 > 학습 데이터 > 기본값
+    // 클럽 거리: 사용자가 설정에서 수동으로 관리
     function applyClubDistances() {
       const custom = loadCustomClubDistances();
       if (custom) {
-        // 사용자 커스텀 값을 기본으로 적용
+        // 사용자 커스텀 값을 적용
         Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
           if (custom[clubId] && custom[clubId].total > 0) {
-            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
+            CLUB_DISTANCES[clubId] = { ...custom[clubId] };
           }
         });
       }
     }
 
     // 라운드 기록에서 클럽별 거리 통계를 계산하여 CLUB_DISTANCES 업데이트
-    function updateClubDistancesFromRounds() {
-      const custom = loadCustomClubDistances();
-      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
-
-      // 먼저 기본값으로 리셋
-      CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
-
-      // 사용자 커스텀 값이 있으면 우선 적용
-      if (custom) {
-        Object.keys(DEFAULT_CLUB_DISTANCES).forEach(clubId => {
-          if (custom[clubId] && custom[clubId].total > 0) {
-            CLUB_DISTANCES[clubId] = { ...custom[clubId], customSet: true };
-          }
-        });
-      }
-
-      if (rounds.length === 0) return;
-
-      // 클럽별 거리 수집
-      const clubStats = {};
-      CLUBS.forEach(c => { clubStats[c.id] = []; });
-
-      rounds.forEach(round => {
-        if (!Array.isArray(round.holes)) return;
-        round.holes.forEach(hole => {
-          if (!Array.isArray(hole.shots)) return;
-          hole.shots.forEach(shot => {
-            // 리커버리샷은 거리 학습에서 제외 (레이업은 포함)
-            if (shot.isRecovery) return;
-            const club = shot.club;
-            const dist = parseInt(shot.distance, 10);
-            if (club && clubStats[club] !== undefined && dist > 0) {
-              clubStats[club].push(dist);
-            }
-          });
-        });
-      });
-
-      // 학습 데이터: 사용자 커스텀이 없는 클럽만 업데이트
-      Object.keys(clubStats).forEach(clubId => {
-        // 사용자가 직접 설정한 클럽은 학습으로 덮어쓰지 않음
-        if (CLUB_DISTANCES[clubId] && CLUB_DISTANCES[clubId].customSet) return;
-
-        const distances = clubStats[clubId];
-        if (distances.length >= 2) {
-          distances.sort((a, b) => a - b);
-          const avg = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
-          const max = distances[distances.length - 1];
-          const carry = Math.round(avg * 0.92);
-          CLUB_DISTANCES[clubId] = { carry, total: avg, max, count: distances.length, learned: true };
-        } else if (distances.length === 1) {
-          const defaultDist = DEFAULT_CLUB_DISTANCES[clubId];
-          const measured = distances[0];
-          const blended = Math.round(defaultDist.total * 0.7 + measured * 0.3);
-          CLUB_DISTANCES[clubId] = {
-            carry: Math.round(blended * 0.92),
-            total: blended,
-            max: Math.max(defaultDist.max, measured),
-            count: 1,
-            learned: true
-          };
-        } else {
-          CLUB_DISTANCES[clubId] = { ...DEFAULT_CLUB_DISTANCES[clubId], count: 0, learned: false };
-        }
-      });
-    }
-
     const DEFAULT_CLUBS = [
       { id: 'driver', name: '드라이버' },
       { id: '5wood', name: '5W' },
@@ -1522,7 +1455,7 @@ holePar: null,
         const payload = {
           meta: {
             app: 'Golf Round Analyzer',
-            version: 'v10',
+            version: 'v11',
             exportedAt: new Date().toISOString()
           },
           data: appState.data
@@ -1742,6 +1675,12 @@ case 4: renderSettingsPage(container); break;
           appState.currentShot = null;
           appState.holePar = null;
         }
+      } else if (appState.pageHistory && appState.pageHistory.length > 0) {
+        // 페이지 히스토리가 있으면 이전 페이지로
+        const prevPage = appState.pageHistory.pop();
+        appState.currentPage = prevPage;
+        render();
+        return;
       } else {
         // 홀 정보(샷 시작 전) 화면에서 뒤로가기:
         // 첫 홀(아직 샷/홀 기록이 없는 상태)에서는 티박스 선택으로 돌아갑니다.
@@ -1793,13 +1732,16 @@ case 4: renderSettingsPage(container); break;
     // BOTTOM NAVIGATION
     // ========================================
     function renderBottomNav() {
+      // 라운드 진행 중에는 하단 네비게이션 숨김
+      if (appState.activeRound) {
+        return document.createElement('div'); // 빈 요소 반환
+      }
+      
       const nav = document.createElement('nav');
       nav.className = 'bottom-nav';
 
       const pages = [
-        { icon: '🏠', label: '홈', pageIndex: 0 },
-        { icon: '⛳', label: '라운드', pageIndex: 1 },
-        { icon: '⚙️', label: '설정', pageIndex: 4 }
+        { icon: '🏠', label: '홈', pageIndex: 0 }
       ];
 
       pages.forEach((page, index) => {
@@ -1877,7 +1819,7 @@ case 4: renderSettingsPage(container); break;
             </button>
           </div>
 
-          <div class="home-version">v10.0.0 • 최종 배포 버전</div>
+          <div class="home-version">v11.0.0 • 개선 버전</div>
         </div>
       `;
     }
@@ -2793,7 +2735,6 @@ const holeIndex = appState.currentHole - 1;
       
       console.log('라운드 저장 중...');
       saveData();
-      updateClubDistancesFromRounds(); // ✅ 라운드 완료 시 클럽 거리 학습 업데이트
       
       // 임시 저장 데이터 삭제
       localStorage.removeItem('golf_temp_round');
@@ -2839,7 +2780,15 @@ const holeIndex = appState.currentHole - 1;
       const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
       const isPar5 = appState.holePar === 5;
       const isRecovery = shot.isRecovery || false;
-      const shotMode = shot.shotMode || (isRecovery ? 'recovery' : 'normal');
+      
+      // shotMode 기본값 설정
+      let defaultMode = 'teeshot';
+      if (shot.number > 1) {
+        // 모든 홀의 샷 #2+ 기본값은 어프로치
+        defaultMode = 'approach';
+      }
+      
+      const shotMode = shot.shotMode || defaultMode;
       const isLayup = shotMode === 'layup';
       
       // Hole Index / Shot +N
@@ -2851,14 +2800,15 @@ const holeIndex = appState.currentHole - 1;
       // Par 4/5 티샷은 거리 불필요, 그 외는 거리 입력 가능 (레이업샷 포함)
       const needsDistance = (isTeeShot && isPar3) || !isTeeShot || isLayup;
       
-      // 추천 클럽 (거리 입력 시 자동)
-      const recommendedClub = (needsDistance && shot.distance && !isRecovery) ? getRecommendedClub(shot.distance) : null;
+      // 추천 클럽 (거리 입력 시 자동, 벙커샷 제외)
+      const recommendedClub = (needsDistance && shot.distance && !isRecovery && shotMode !== 'bunker') ? getRecommendedClub(shot.distance) : null;
 
       container.innerHTML = `
         <div class="shot-header-unified">
           <div class="shot-header-row-1">
             <div class="shot-header-left">
               <div class="back-button" onclick="goBackFromShot()">←</div>
+              <div class="back-button ${!canGoForward() ? 'disabled' : ''}" onclick="goForwardFromShot()" style="margin-left: 4px; ${!canGoForward() ? 'opacity: 0.3; cursor: not-allowed;' : ''}">→</div>
               <span class="hole-num">Hole ${appState.currentHole} - Par ${appState.holePar}</span>
               ${appState.holeDistance ? `<span class="distance-badge">${appState.holeDistance}m</span>` : ''}
             </div>
@@ -2887,102 +2837,311 @@ const holeIndex = appState.currentHole - 1;
           <div class="previous-shots">
             <strong>이전 샷:</strong><br>
             ${appState.shots.map((s, i) => {
-              if (s.isRecovery) return `✓ #${i + 1}: 🚨 리커버리`;
+              // 벌타샷은 표시하지 않음 (이전 샷에서 설명됨)
+              if (s.isPenalty) {
+                return '';
+              }
+              
+              // 리커버리샷 처리
+              if (s.isRecovery) {
+                return `✓ #${i + 1}: 🚨 리커버리`;
+              }
+              
               const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
               const modeLabel = s.shotMode === 'layup' ? ' 🏌️레이업' : '';
               const resultText = s.result.onGreen ? '온그린' : s.result.landing || '';
-              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''}${modeLabel}${resultText ? ' → ' + resultText : ''}`;
-            }).join('<br>')}
+              
+              // 해저드, OB, 벙커 표시
+              let penaltyText = '';
+              if (s.isHazard && s.penalty > 0) {
+                penaltyText = ` → Hazard → +${s.penalty} 벌타 #${i + 2} → #${i + 3}샷으로 이동`;
+              } else if (s.isOB && s.penalty > 0) {
+                penaltyText = ` → OB → +${s.penalty} 벌타 #${i + 2} → #${i + 3}샷으로 이동`;
+              }
+              
+              const isBunker = s.result.landing === 'bunker';
+              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''}${modeLabel}${resultText && !s.isHazard && !s.isOB && !isBunker ? ' → ' + resultText : ''}${penaltyText}`;
+            }).filter(s => s !== '').join('<br>')}
           </div>
         ` : ''}
 
-        <div class="section" style="padding: 8px 14px;">
-          <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
 
-            <button class="choice-btn ${shotMode === 'normal' ? 'selected' : ''}"
-              onclick="setShotMode('normal')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              일반샷
-            </button>
-
-            <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
-              onclick="setShotMode('layup')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              레이업샷
-            </button>
-
-            <button class="choice-btn ${shotMode === 'recovery' ? 'selected' : ''}"
-              onclick="setShotMode('recovery')"
-              style="flex:1; padding:8px 4px; font-size:13px;">
-              🚨 리커버리샷
-            </button>
-
-          </div>
-        </div>
-
+        ${(() => {
+          const shotNum = shot.number;
+          const shotMode = shot.shotMode || 'teeshot';
+          const isBunker = shotMode === 'bunker';
+          
+          // 샷 #1 = 티샷만 (모든 홀 공통)
+          // 또는 OB 후 재타격(shotMode === 'teeshot')
+          if (shotNum === 1 || shotMode === 'teeshot') {
+            return `
+              <div class="section" style="padding: 12px 14px;">
+                <div style="text-align: center; font-size: 14px; font-weight: 600; color: var(--green-primary);">
+                  ⛳ 티샷
+                </div>
+              </div>
+            `;
+          }
+          
+          // 파3 샷 #2+: 벙커샷, 숏게임
+          if (isPar3 && shotNum >= 2) {
+            return `
+              <div class="section" style="padding: 8px 14px;">
+                <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+                  <button class="choice-btn ${shotMode === 'bunker' ? 'selected' : ''}"
+                    onclick="setShotMode('bunker')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    벙커샷
+                  </button>
+                  <button class="choice-btn ${shotMode === 'shortgame' ? 'selected' : ''}"
+                    onclick="setShotMode('shortgame')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    숏게임
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+          
+          // 이전 샷 확인
+          const previousShot = appState.shots.length > 0 ? appState.shots[appState.shots.length - 1] : null;
+          const isPreviousApproach = previousShot && previousShot.shotMode === 'approach';
+          const isPreviousBunkerLanding = previousShot && previousShot.result.landing === 'bunker';
+          
+          // 이전 샷 착지 지점이 벙커면 벙커샷만 표시
+          if (isPreviousBunkerLanding && shotNum >= 2) {
+            return `
+              <div class="section" style="padding: 12px 14px;">
+                <div style="text-align: center; font-size: 14px; font-weight: 600; color: var(--green-primary);">
+                  ⛳ 벙커샷
+                </div>
+              </div>
+            `;
+          }
+          
+          // 이전 샷이 어프로치였다면 벙커샷, 숏게임만 표시
+          if (isPreviousApproach && shotNum >= 2) {
+            return `
+              <div class="section" style="padding: 8px 14px;">
+                <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+                  <button class="choice-btn ${shotMode === 'bunker' ? 'selected' : ''}"
+                    onclick="setShotMode('bunker')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    벙커샷
+                  </button>
+                  <button class="choice-btn ${shotMode === 'shortgame' ? 'selected' : ''}"
+                    onclick="setShotMode('shortgame')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    숏게임
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+          
+          // 파4 샷 #2+: 어프로치, 레이업, 리커버리
+          if (appState.holePar === 4 && shotNum >= 2) {
+            return `
+              <div class="section" style="padding: 8px 14px;">
+                <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+                  <button class="choice-btn ${shotMode === 'approach' ? 'selected' : ''}"
+                    onclick="setShotMode('approach')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    어프로치
+                  </button>
+                  <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
+                    onclick="setShotMode('layup')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    레이업
+                  </button>
+                  <button class="choice-btn ${shotMode === 'recovery' ? 'selected' : ''}"
+                    onclick="setShotMode('recovery')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    🚨 리커버리
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+          
+          // 파5 샷 #2+: 레이업, 리커버리
+          if (isPar5 && shotNum >= 2) {
+            return `
+              <div class="section" style="padding: 8px 14px;">
+                <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+                  <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
+                    onclick="setShotMode('layup')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    레이업
+                  </button>
+                  <button class="choice-btn ${shotMode === 'recovery' ? 'selected' : ''}"
+                    onclick="setShotMode('recovery')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    🚨 리커버리
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+          
+          return '';
+        })()}
 
 
         ${isRecovery ? `
           <div style="background: #fff3cd; border-left: 4px solid var(--red); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
             <p style="margin: 0; font-size: 13px; line-height: 1.4;">
-              🚨 트러블 상황에서 벗어나는 샷. 거리 학습에 반영되지 않습니다.
+              🚨 트러블 상황에서 벗어나는 샷입니다.
             </p>
           </div>
         ` : ''}
 
-        ${!isRecovery ? `
-          ${needsDistance ? `
-            <div class="section">
-              <div class="input-section">
-                <label>거리 선택(미터) <span class="optional-label">(선택)</span></label>
-                <input type="number" class="text-input" id="distance-input"
-                  inputmode="numeric"
-                  enterkeyhint="done"
-                  value="${shot.distance || ''}" 
-                  placeholder="예: 150"
-                  oninput="updateDistanceAndRecommend()"
-                  onkeypress="if(event.key==='Enter'){this.blur();}">
+        ${(() => {
+          const isBunker = shotMode === 'bunker';
+          const shotNum = shot.number;
+          
+          // 벙커샷이면 거리/클럽 입력 숨김
+          if (isBunker) {
+            return `
+              <div style="background: #fff9e6; border-left: 4px solid #d4a574; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.4;">
+                  ⛳ 벙커샷 - 온그린 여부만 선택하세요
+                </p>
               </div>
-
-              <div id="club-recommendation-area">
-                ${recommendedClub ? `
-                  <div class="club-recommendation">
-                    💡 추천: ${recommendedClub.name} (캐리 ${CLUB_DISTANCES[recommendedClub.id].carry} / 토탈 ${CLUB_DISTANCES[recommendedClub.id].total} / 맥스 ${CLUB_DISTANCES[recommendedClub.id].max})
+            `;
+          }
+          
+          // 일반 샷: 거리/클럽 입력 표시
+          if (!isRecovery) {
+            let html = '';
+            
+            // 거리 입력
+            if (needsDistance) {
+              const isPar5Layup = isPar5 && (shotNum === 2 || shotNum === 3) && isLayup;
+              
+              if (isPar5Layup) {
+                html += `
+                  <div class="section">
+                    <div class="input-section">
+                      <label>거리 선택(미터) <span class="optional-label">(선택)</span></label>
+                      <input type="number" class="text-input" id="distance-input"
+                        inputmode="numeric"
+                        enterkeyhint="done"
+                        value="${shot.distance || ''}" 
+                        placeholder="예: 150"
+                        oninput="updateDistanceAndRecommend(); updatePar5RemainingDistance();"
+                        onkeypress="if(event.key==='Enter'){this.blur();}">
+                    </div>
+                `;
+              } else {
+                html += `
+                  <div class="section">
+                    <div class="input-section">
+                      <label>거리 선택(미터) <span class="optional-label">(선택)</span></label>
+                      <input type="number" class="text-input" id="distance-input"
+                        inputmode="numeric"
+                        enterkeyhint="done"
+                        value="${shot.distance || ''}" 
+                        placeholder="예: 150"
+                        oninput="updateDistanceAndRecommend();"
+                        onkeypress="if(event.key==='Enter'){this.blur();}">
+                    </div>
+                `;
+              }
+              
+              if (isPar5Layup) {
+                html += `
+                  <div id="par5-remaining-distance" style="margin-top: 8px; padding: 10px; background: #e8f4f8; border-left: 4px solid var(--blue); border-radius: 6px;">
+                    <p style="margin: 0; font-size: 13px; line-height: 1.4; color: var(--brown);">
+                      💡 <strong>남은 거리 계산:</strong> <span id="par5-calc-result">거리를 입력하세요</span>
+                    </p>
                   </div>
-                ` : ''}
-              </div>
-            </div>
-          ` : ''}
-
-          <div class="section">
-            <div class="input-section">
-              <label>클럽 선택</label>
-              <select class="select-input" onchange="selectClub(this.value)">
-                <option value="">선택하세요</option>
-                ${CLUBS.map(club => {
-                  const dist = CLUB_DISTANCES[club.id];
-                  const distText = dist.total > 0 ? ` (${dist.total}m)` : '';
-                  const selected = shot.club === club.id ? 'selected' : '';
-                  return `<option value="${club.id}" ${selected}>${club.name}${distText}</option>`;
-                }).join('')}
-              </select>
-            </div>
-
-            ${(isTeeShot && isPar4or5) || isLayup ? `
-              <div class="input-section">
-                <label>착지 지점</label>
-                <div class="button-group-3">
-                  <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
-                    onclick="setLanding('fairway')">페어웨이</button>
-                  <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
-                    onclick="setLanding('rough-left')">좌측 러프</button>
-                  <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
-                    onclick="setLanding('rough-right')">우측 러프</button>
+                `;
+              }
+              
+              html += `
+                  <div id="club-recommendation-area">
+                    ${recommendedClub ? `
+                      <div class="club-recommendation">
+                        💡 추천: ${recommendedClub.name} (캐리 ${CLUB_DISTANCES[recommendedClub.id].carry} / 토탈 ${CLUB_DISTANCES[recommendedClub.id].total} / 맥스 ${CLUB_DISTANCES[recommendedClub.id].max})
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }
+            
+            // 클럽 선택
+            html += `
+              <div class="section">
+                <div class="input-section">
+                  <label>클럽 선택</label>
+                  <select class="select-input" onchange="selectClub(this.value)">
+                    <option value="">선택하세요</option>
+                    ${CLUBS.map(club => {
+                      const dist = CLUB_DISTANCES[club.id];
+                      const distText = dist.total > 0 ? ` (${dist.total}m)` : '';
+                      const selected = shot.club === club.id ? 'selected' : '';
+                      return `<option value="${club.id}" ${selected}>${club.name}${distText}</option>`;
+                    }).join('')}
+                  </select>
                 </div>
               </div>
-            ` : ''}
+            `;
+            
+            return html;
+          }
+          
+          return '';
+        })()}
 
-            ${((isTeeShot && isPar4or5) || isLayup) ? `
+        ${shot.type !== 'putt' && shotMode !== 'bunker' && shotMode !== 'shortgame' ? `
+          <div class="section">
+            <div class="input-section">
+              <label>착지 지점</label>
+              ${(() => {
+                const shotNum = shot.number;
+                const showBunker = (isPar3 && shotNum === 1) || (isPar4or5 && shotNum >= 2);
+                  
+                  if (showBunker) {
+                    // 파3 티샷 또는 파4/5 샷#2+ : 벙커 포함 (6개)
+                    return `
+                      <div class="button-group-3" style="grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                        <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
+                          onclick="setLanding('fairway')">페어웨이</button>
+                        <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
+                          onclick="setLanding('rough-left')">좌측 러프</button>
+                        <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
+                          onclick="setLanding('rough-right')">우측 러프</button>
+                        <button class="choice-btn ${shot.result.landing === 'hazard' ? 'selected' : ''}" 
+                          onclick="setLanding('hazard')">해저드</button>
+                        <button class="choice-btn ${shot.result.landing === 'ob' ? 'selected' : ''}" 
+                          onclick="setLanding('ob')">OB</button>
+                        <button class="choice-btn ${shot.result.landing === 'bunker' ? 'selected' : ''}" 
+                          onclick="setLanding('bunker')">벙커</button>
+                      </div>
+                    `;
+                  } else {
+                    // 파4/5 티샷: 벙커 제외 (5개)
+                    return `
+                      <div class="button-group-3" style="grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                        <button class="choice-btn ${shot.result.landing === 'fairway' ? 'selected' : ''}" 
+                          onclick="setLanding('fairway')">페어웨이</button>
+                        <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
+                          onclick="setLanding('rough-left')">좌측 러프</button>
+                        <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
+                          onclick="setLanding('rough-right')">우측 러프</button>
+                        <button class="choice-btn ${shot.result.landing === 'hazard' ? 'selected' : ''}" 
+                          onclick="setLanding('hazard')">해저드</button>
+                        <button class="choice-btn ${shot.result.landing === 'ob' ? 'selected' : ''}" 
+                          onclick="setLanding('ob')">OB</button>
+                      </div>
+                    `;
+                  }
+                })()}
+            </div>
+
+            ${shot.type !== 'putt' ? `
               <div class="input-section">
                 <label>구질 <span class="optional-label">(선택)</span></label>
                 <div class="button-group-3">
@@ -2994,48 +3153,18 @@ const holeIndex = appState.currentHole - 1;
                     onclick="toggleShape('fade')">페이드</button>
                 </div>
               </div>
-            ` : ''}
 
-            ${((isTeeShot && isPar4or5) || isLayup) && shot.result.landing && shot.result.landing !== 'fairway' ? `
-              <div class="input-section">
-                <label>미스 패턴 <span class="optional-label">(선택)</span></label>
-                <div class="checkbox-group">
-                  ${['hook', 'slice', 'push', 'pull', 'open', 'close'].map(miss => {
-                    const labels = { hook: '훅', slice: '슬라이스', push: '푸쉬', pull: '풀', open: '헤드열림', close: '헤드닫힘' };
-                    const isSelected = shot.result.miss && shot.result.miss.includes(miss);
-                    return `
-                      <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
-                        onclick="toggleMiss('${miss}')">
-                        ${labels[miss]}
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-            ` : ''}
-
-            ${(!isTeeShot || isPar3) && !isLayup ? `
-              <div class="input-section">
-                <label>온그린 여부</label>
-                <div class="button-group">
-                  <button class="choice-btn ${shot.result.onGreen === true ? 'selected' : ''}" 
-                    onclick="setOnGreen(true)">온그린 ✓</button>
-                  <button class="choice-btn ${shot.result.onGreen === false ? 'selected' : ''}" 
-                    onclick="setOnGreen(false)">그린 미스</button>
-                </div>
-              </div>
-
-              ${shot.result.onGreen !== null ? `
+              ${shot.result.landing && shot.result.landing !== 'fairway' ? `
                 <div class="input-section">
-                  <label>${shot.result.onGreen ? '핀 위치 대비' : '결과'} <span class="optional-label">(선택)</span></label>
+                  <label>미스 패턴 <span class="optional-label">(선택)</span></label>
                   <div class="checkbox-group">
-                    ${['short', 'long', 'left', 'right', 'within1m'].map(dir => {
-                      const labels = { short: '짧음', long: '김', left: '좌측', right: '우측', within1m: '1m 이내' };
-                      const isSelected = shot.result.direction && shot.result.direction.includes(dir);
+                    ${['hook', 'slice', 'push', 'pull', 'open', 'close'].map(miss => {
+                      const labels = { hook: '훅', slice: '슬라이스', push: '푸쉬', pull: '풀', open: '헤드열림', close: '헤드닫힘' };
+                      const isSelected = shot.result.miss && shot.result.miss.includes(miss);
                       return `
                         <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
-                          onclick="toggleDirection('${dir}')">
-                          ${labels[dir]}
+                          onclick="toggleMiss('${miss}')">
+                          ${labels[miss]}
                         </div>
                       `;
                     }).join('')}
@@ -3045,6 +3174,52 @@ const holeIndex = appState.currentHole - 1;
             ` : ''}
           </div>
         ` : ''}
+
+        <div class="section">
+          ${((!isTeeShot || isPar3 || (isPar5 && shot.number >= 2)) && !isLayup && !isRecovery) || shotMode === 'bunker' || shotMode === 'shortgame' ? `
+            <div class="input-section">
+              <label>온그린 여부</label>
+              <div class="button-group">
+                <button class="choice-btn ${shot.result.onGreen === true ? 'selected' : ''}" 
+                  onclick="setOnGreen(true)">온그린 ✓</button>
+                <button class="choice-btn ${shot.result.onGreen === false ? 'selected' : ''}" 
+                  onclick="setOnGreen(false)">그린 미스</button>
+              </div>
+            </div>
+
+            ${shotMode === 'bunker' && shot.result.onGreen === false ? `
+              <div class="input-section">
+                <label>착지 지점</label>
+                <div class="button-group-3" style="grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                  <button class="choice-btn ${shot.result.landing === 'bunker' ? 'selected' : ''}" 
+                    onclick="setLanding('bunker')">벙커</button>
+                  <button class="choice-btn ${shot.result.landing === 'rough-left' ? 'selected' : ''}" 
+                    onclick="setLanding('rough-left')">좌측 러프</button>
+                  <button class="choice-btn ${shot.result.landing === 'rough-right' ? 'selected' : ''}" 
+                    onclick="setLanding('rough-right')">우측 러프</button>
+                </div>
+              </div>
+            ` : ''}
+
+            ${shot.result.onGreen !== null && shotMode !== 'bunker' && shotMode !== 'shortgame' ? `
+              <div class="input-section">
+                <label>${shot.result.onGreen ? '핀 위치 대비' : '결과'} <span class="optional-label">(선택)</span></label>
+                <div class="checkbox-group">
+                  ${['short', 'long', 'left', 'right', 'within1m'].map(dir => {
+                    const labels = { short: '짧음', long: '김', left: '좌측', right: '우측', within1m: '1m 이내' };
+                    const isSelected = shot.result.direction && shot.result.direction.includes(dir);
+                    return `
+                      <div class="checkbox-label ${isSelected ? 'selected' : ''}" 
+                        onclick="toggleDirection('${dir}')">
+                        ${labels[dir]}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+          ` : ''}
+        </div>
 
         <button class="primary-btn" 
           ${!canCompleteShot() ? 'disabled' : ''} 
@@ -3094,20 +3269,62 @@ const holeIndex = appState.currentHole - 1;
     }
 
     // ========================================
-    // BACK BUTTON FROM SHOT INPUT
+    // BACK/FORWARD BUTTON FROM SHOT INPUT (History Navigation)
     // ========================================
     window.goBackFromShot = function() {
-      // 현재 샷 입력 취소
-      appState.currentShot = null;
-      
-      // 샷 입력 전 화면으로 복귀 (홈 화면)
-      if (appState.shots.length === 0 && !appState.puttingData) {
-        // 첫 번째 샷이면 홀 선택 화면으로
-        appState.holePar = null;
-        appState.holeDistance = '';
+      // 현재 입력 중인 샷을 임시 저장
+      if (!appState.shotHistory) {
+        appState.shotHistory = [];
       }
       
-      render();
+      // 저장된 샷이 있으면 이전 샷으로 이동
+      if (appState.shots && appState.shots.length > 0) {
+        // 현재 샷을 히스토리 앞쪽에 저장 (앞으로가기용)
+        if (appState.currentShot && !appState.shotHistory.find(s => s.number === appState.currentShot.number)) {
+          appState.shotHistory.unshift({...appState.currentShot});
+        }
+        
+        // 마지막 샷을 꺼내서 다시 편집
+        const lastShot = appState.shots.pop();
+        appState.currentShot = lastShot;
+        
+        // 퍼팅 데이터가 있었다면 제거
+        appState.puttingData = null;
+        
+        autoSaveProgress();
+        render();
+      } else {
+        // 첫 번째 샷이면 현재 샷 입력 취소하고 홀 정보 화면으로
+        appState.currentShot = null;
+        appState.holePar = null;
+        appState.holeDistance = '';
+        render();
+      }
+    };
+
+    window.goForwardFromShot = function() {
+      // 히스토리에서 다음 샷 가져오기
+      if (!appState.shotHistory) {
+        appState.shotHistory = [];
+      }
+      
+      if (appState.shotHistory.length > 0) {
+        // 현재 샷을 shots 배열에 저장
+        if (appState.currentShot) {
+          appState.shots.push({...appState.currentShot});
+        }
+        
+        // 히스토리에서 다음 샷 꺼내기
+        const nextShot = appState.shotHistory.shift();
+        appState.currentShot = nextShot;
+        
+        autoSaveProgress();
+        render();
+      }
+    };
+
+    window.canGoForward = function() {
+      return appState.shotHistory && appState.shotHistory.length > 0;
     };
 
     window.goBackFromPutting = function() {
@@ -3175,9 +3392,142 @@ const holeIndex = appState.currentHole - 1;
       }
     };
 
+    window.updatePar5RemainingDistance = function() {
+      const distInput = document.getElementById('distance-input');
+      const resultEl = document.getElementById('par5-calc-result');
+      if (distInput && resultEl) {
+        const layupDist = parseInt(distInput.value, 10);
+        if (layupDist > 0 && appState.holeDistance > 0) {
+          const remaining = appState.holeDistance - layupDist;
+          if (remaining > 0) {
+            resultEl.innerHTML = `<b>${appState.holeDistance}m - ${layupDist}m = <span style="color: var(--green-primary); font-size: 16px;">${remaining}m</span></b>`;
+          } else {
+            resultEl.textContent = '입력한 거리가 너무 큽니다.';
+          }
+        } else {
+          resultEl.textContent = '거리를 입력하세요';
+        }
+      }
+    };
+
     window.setLanding = function(type) {
       appState.currentShot.result.landing = type;
-      autoSaveProgress();  // 자동 저장
+      
+      // 벙커 선택 시 자동 이동 삭제 - 수동으로 "다음 샷으로" 버튼 클릭
+      
+      // 해저드(1벌타) 또는 OB(1벌타) 처리
+      if (type === 'hazard') {
+        appState.currentShot.penalty = 1;
+        appState.currentShot.isHazard = true;
+        
+        // 현재 샷 저장
+        appState.shots.push({...appState.currentShot});
+        
+        // 벌타샷 자동 생성 (샷 번호 +1)
+        const penaltyShotNumber = appState.shots.length + 1;
+        appState.shots.push({
+          number: penaltyShotNumber,
+          type: 'penalty',
+          club: '',
+          distance: '',
+          shotMode: 'penalty',
+          isPenalty: true,
+          penalty: 0,
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        });
+        
+        // 다음 실제 샷 생성 (샷 번호 +2, 즉 #3)
+        const nextShotNumber = appState.shots.length + 1;
+        appState.currentShot = {
+          number: nextShotNumber,
+          type: 'approach',
+          club: '',
+          distance: '',
+          shotMode: 'recovery',
+          isRecovery: false,
+          penalty: 0,
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        };
+        
+        alert('⚠️ 해저드 (1벌타)\n벌타샷이 자동 추가되었습니다.');
+        autoSaveProgress();
+        render();
+        return;
+      } else if (type === 'ob') {
+        appState.currentShot.penalty = 1;
+        appState.currentShot.isOB = true;
+        
+        // 원래 샷이 티샷이었는지 확인
+        const wasTeeShotOB = appState.currentShot.type === 'tee';
+        
+        // 현재 샷 저장
+        appState.shots.push({...appState.currentShot});
+        
+        // 벌타샷 자동 생성 (샷 번호 +1)
+        const penaltyShotNumber = appState.shots.length + 1;
+        appState.shots.push({
+          number: penaltyShotNumber,
+          type: 'penalty',
+          club: '',
+          distance: '',
+          shotMode: 'penalty',
+          isPenalty: true,
+          penalty: 0,
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        });
+        
+        // 다음 실제 샷 생성 (OB는 재타격이므로 티샷으로)
+        const nextShotNumber = appState.shots.length + 1;
+        appState.currentShot = {
+          number: nextShotNumber,
+          type: wasTeeShotOB ? 'tee' : 'approach',
+          club: '',
+          distance: '',
+          shotMode: wasTeeShotOB ? 'teeshot' : 'recovery',
+          isRecovery: false,
+          penalty: 0,
+          result: {
+            landing: '',
+            location: '',
+            onGreen: null,
+            direction: [],
+            shape: '',
+            miss: []
+          }
+        };
+        
+        alert('⚠️ OB (1벌타)\n벌타샷이 자동 추가되었습니다.');
+        autoSaveProgress();
+        render();
+        return;
+      } else {
+        appState.currentShot.penalty = 0;
+        appState.currentShot.isHazard = false;
+        appState.currentShot.isOB = false;
+      }
+      
+      autoSaveProgress();
       preserveScrollAndRender();
     };
 
@@ -3241,9 +3591,24 @@ const holeIndex = appState.currentHole - 1;
       
       const isTeeShot = shot.type === 'tee';
       const isPar4or5 = appState.holePar === 4 || appState.holePar === 5;
+      const isPar5 = appState.holePar === 5;
       const isLayup = shot.shotMode === 'layup';
+      const isBunker = shot.shotMode === 'bunker';
+      const isShortGame = shot.shotMode === 'shortgame';
       
-      // 클럽 선택 필수
+      // 벙커샷: 온그린 여부 필수 + 그린 미스면 착지 지점 필수
+      if (isBunker) {
+        if (shot.result.onGreen === null) return false;
+        if (shot.result.onGreen === false && !shot.result.landing) return false;
+        return true;
+      }
+      
+      // 숏게임: 온그린 여부만 필수
+      if (isShortGame) {
+        return shot.result.onGreen !== null;
+      }
+      
+      // 클럽 선택 필수 (벙커샷/숏게임 제외)
       if (!shot.club) return false;
       
       // Par 4/5 티샷: 착지 지점 필수 (온그린 선택 없음)
@@ -3256,7 +3621,7 @@ const holeIndex = appState.currentHole - 1;
         return !!shot.result.landing;
       }
       
-      // 그 외 (Par 3 티샷, 샷 #2~): 온그린 여부 필수
+      // 그 외 (Par 3 티샷, 샷 #2~, 파5 샷#2+): 온그린 여부 필수
       if (shot.result.onGreen === null) return false;
       
       return true;
@@ -3271,7 +3636,14 @@ const holeIndex = appState.currentHole - 1;
         appState.currentShot.distance = distInput.value;
       }
 
+      // 이전 샷 모드 및 착지 지점 저장 (다음 샷 타입 결정용)
+      const previousShotMode = appState.currentShot.shotMode;
+      const previousLanding = appState.currentShot.result.landing;
+
       appState.shots.push({...appState.currentShot});
+      
+      // 히스토리 초기화 (새 샷 생성 시)
+      appState.shotHistory = [];
 
       // 온그린이면 퍼팅으로
       if (appState.currentShot.result.onGreen) {
@@ -3280,14 +3652,38 @@ const holeIndex = appState.currentHole - 1;
         };
         appState.currentShot = null;
       } else {
-        // 온그린 아니면 다음 샷 (type은 #1만 tee, 이후 approach)
+        // 온그린 아니면 다음 샷
         const nextShotNumber = appState.shots.length + 1;
+        
+        // 다음 샷 타입 결정
+        let defaultNextMode = 'approach';
+        
+        // 이전 샷 착지 지점이 벙커면 → 다음 샷은 벙커샷
+        if (previousLanding === 'bunker') {
+          defaultNextMode = 'bunker';
+        } else if (previousShotMode === 'approach') {
+          // 어프로치 후에는 벙커 또는 숏게임
+          defaultNextMode = 'bunker';
+        } else if (previousShotMode === 'bunker') {
+          // 벙커샷 후 착지 지점에 따라
+          if (previousLanding === 'bunker') {
+            // 벙커에 남음 → 다시 벙커샷
+            defaultNextMode = 'bunker';
+          } else {
+            // 러프로 나감 → 숏게임
+            defaultNextMode = 'shortgame';
+          }
+        } else if (previousShotMode === 'shortgame') {
+          // 숏게임 후에도 숏게임
+          defaultNextMode = 'shortgame';
+        }
+        
         appState.currentShot = {
           number: nextShotNumber,
           type: 'approach',
           club: '',
           distance: '',
-          shotMode: 'normal',
+          shotMode: defaultNextMode,
           isRecovery: false,
           result: {
             landing: '',
@@ -3746,7 +4142,7 @@ const holeIndex = appState.currentHole - 1;
         return sum + r.holes.reduce((s, h) => s + h.score, 0);
       }, 0) / recentRounds.length).toFixed(1);
 
-      // 티샷 정확도
+      // 페어웨이 적중률
       const teeShots = recentRounds.flatMap(r => 
         r.holes.filter(h => h.shots.length > 0).map(h => h.shots[0])
       );
@@ -3779,13 +4175,13 @@ const holeIndex = appState.currentHole - 1;
           
           <div class="stat-card">
             <div class="stat-icon">🏌️</div>
-            <div class="stat-label">티샷 정확도</div>
+            <div class="stat-label">페어웨이 적중률</div>
             <div class="stat-value">${teeShotAccuracy}%</div>
           </div>
           
           <div class="stat-card">
             <div class="stat-icon">🎯</div>
-            <div class="stat-label">파온율 (GIR)</div>
+            <div class="stat-label">GIR (그린 적중률)</div>
             <div class="stat-value">${girPercentage}%</div>
           </div>
           
@@ -3801,12 +4197,10 @@ const holeIndex = appState.currentHole - 1;
           <div class="club-list">
             ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => {
               const d = CLUB_DISTANCES[club.id];
-              const sqColor = d.customSet ? '#e53e3e' : (d.learned ? '#38a169' : '#ecc94b');
-              const countText = d.customSet ? ' (사용자 설정)' : (d.learned && d.count ? ` (${d.count}회)` : ' (기본값)');
               return `
               <div class="club-item">
-                <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
-                ${club.name}: ${d.total}m${countText}
+                <span style="display:inline-block;width:10px;height:10px;background:var(--green-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
+                ${club.name}: ${d.total}m
               </div>`;
             }).join('')}
           </div>
@@ -4484,7 +4878,7 @@ const holeIndex = appState.currentHole - 1;
       // 3. 페어웨이 안착률
       if (analysis.fairwayHitRate < 65) {
         weaknesses.push({
-          name: '티샷 정확도',
+          name: '페어웨이 적중률',
           priority: 'medium',
           current: `${analysis.fairwayHitRate}%`,
           target: '70%',
@@ -4820,12 +5214,6 @@ const holeIndex = appState.currentHole - 1;
             클럽 이름과 거리(m)를 설정하세요. 클럽 추천 및 샷 입력에 사용됩니다.
           </p>
 
-          <div style="margin-bottom: 8px; display: flex; gap: 12px; font-size: 11px; opacity: 0.7;">
-            <span><span style="display:inline-block;width:10px;height:10px;background:#e53e3e;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 사용자 설정</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#38a169;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 라운드 학습</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#ecc94b;border-radius:2px;vertical-align:middle;margin-right:2px;"></span> 기본값</span>
-          </div>
-
           <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; padding: 4px 8px; margin-bottom: 2px;">
             <div></div>
             <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.6;">클럽</div>
@@ -4837,15 +5225,12 @@ const holeIndex = appState.currentHole - 1;
           <div id="club-bag-list" style="display: flex; flex-direction: column; gap: 5px;">
             ${CLUBS.map((club, idx) => {
               const dist = CLUB_DISTANCES[club.id];
-              const isCustom = dist && dist.customSet;
-              const isLearned = dist && dist.learned && !isCustom;
-              const sqColor = isCustom ? '#e53e3e' : (isLearned ? '#38a169' : '#ecc94b');
               const carry = dist && dist.carry > 0 ? dist.carry : '';
               const total = dist && dist.total > 0 ? dist.total : '';
               const max = dist && dist.max > 0 ? dist.max : '';
               return `
                 <div style="display: grid; grid-template-columns: 18px 1fr 1fr 1fr 1fr; align-items: center; padding: 4px 8px; background: var(--sand); border-radius: 8px;">
-                  <span style="display:inline-block;width:10px;height:10px;background:${sqColor};border-radius:2px;"></span>
+                  <span style="display:inline-block;width:10px;height:10px;background:var(--green-light);border-radius:2px;"></span>
                   <input type="text" id="club-name-${idx}"
                     value="${escHtml(club.name)}"
                     placeholder="클럽명"
@@ -4890,9 +5275,9 @@ const holeIndex = appState.currentHole - 1;
 
         <div class="section" style="text-align: center;">
           <h3 style="margin-bottom: 8px;">Golf Round Analyzer</h3>
-          <p style="opacity: 0.6;">Version 10.0.0</p>
+          <p style="opacity: 0.6;">Version 11.0.0</p>
           <p style="opacity: 0.6; font-size: 12px; margin-top: 8px;">
-            Claude AI 스코어카드 분석 • 클럽 거리 자동 학습
+            Claude AI 스코어카드 분석 • 라운드 기록 및 분석
           </p>
         </div>
       `;
@@ -4944,8 +5329,8 @@ const holeIndex = appState.currentHole - 1;
           const t = total || carry || 0;
           const c = carry || Math.round(t * 0.92);
           const m = max || Math.round(t * 1.05);
-          customDistances[id] = { carry: c, total: t, max: m, customSet: true };
-          CLUB_DISTANCES[id] = { carry: c, total: t, max: m, customSet: true };
+          customDistances[id] = { carry: c, total: t, max: m };
+          CLUB_DISTANCES[id] = { carry: c, total: t, max: m };
         }
       }
 
@@ -4967,7 +5352,6 @@ const holeIndex = appState.currentHole - 1;
         try { localStorage.removeItem(CUSTOM_CLUB_DISTANCES_KEY); } catch(_) {}
         CLUBS = JSON.parse(JSON.stringify(DEFAULT_CLUBS));
         CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
-        updateClubDistancesFromRounds();
         alert('✅ 골프백이 기본 구성으로 초기화되었습니다.');
         render();
       }
@@ -5540,7 +5924,6 @@ function fillCourseFromAI(data) {
     window.addEventListener('DOMContentLoaded', () => {
       try { loadData(); } catch (e) { console.error('Initial loadData failed:', e); }
       try { loadCustomClubs(); } catch (e) { console.error('Custom clubs load failed:', e); }
-      try { updateClubDistancesFromRounds(); } catch (e) { console.error('Club distance learning failed:', e); }
       try { checkForRecovery(); } catch (e) { console.error('Recovery check failed:', e); }
       try { render(); } catch (e) { console.error('Initial render failed:', e); }
       try { preventBackButton(); } catch (e) { console.error('Back button prevention failed:', e); }
