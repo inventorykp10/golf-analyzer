@@ -66,34 +66,7 @@
       padding-bottom: 2vh;
     }
 
-    /* ========== BACK BUTTON ========== */
-    .back-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1.5px solid var(--green-light);
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      font-size: 18px;
-      color: var(--green-primary);
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-      margin-right: 6px;
-    }
-
-    .back-button:hover {
-      background: var(--green-light);
-      color: white;
-      transform: translateX(-2px);
-    }
-
-    .back-button:active {
-      transform: scale(0.92);
-    }
+    /* ========== BACK BUTTON (제거됨 - 홈 버튼과 기능 중복) ========== */
 
     /* ========== HOME BUTTON (우측 상단) ========== */
     .home-button {
@@ -4564,15 +4537,14 @@ const holeIndex = appState.currentHole - 1;
             const originalIndex = appState.data.rounds.findIndex(r => r === round);
             
             return `
-              <div class="round-card" style="position: relative;">
-                <button class="delete-btn" onclick="deleteRound(${originalIndex})" style="position: absolute; top: 12px; right: 12px; padding: 4px 8px; font-size: 11px; background: var(--red); color: white; border: none; border-radius: 6px; cursor: pointer;">삭제</button>
-                <div class="round-header-info" style="padding-right: 50px;">
+              <div class="round-card">
+                <div class="round-header-info" style="flex: 1;">
                   <h3>${round.course} ${teeBox}</h3>
                   <span class="round-date">
                     ${new Date(round.date).toLocaleDateString('ko-KR')} • ${round.holes.length}홀
                   </span>
                 </div>
-                <div class="round-score-info" style="min-width: 120px; text-align: right;">
+                <div class="round-score-info" style="min-width: 120px; text-align: right; margin-right: 12px;">
                   <div class="total-score">${totalScore}</div>
                   <div style="font-size: 13px; color: var(--brown); opacity: 0.75; margin-top: 2px;">
                     Nett <b>${(() => {
@@ -4584,6 +4556,7 @@ const holeIndex = appState.currentHole - 1;
                     Stableford <b>${s.stableford}</b> pts
                   </div>
                 </div>
+                <button class="delete-btn" onclick="deleteRound(${originalIndex})">삭제</button>
               </div>
             `;
           }).join('')}
@@ -4883,6 +4856,10 @@ const holeIndex = appState.currentHole - 1;
         <p style="padding: 12px; background: var(--sand); border-radius: 8px; font-size: 14px;">
           ${analysis.improvementTrend}
         </p>
+
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
       `;
       resultDiv.style.display = 'block';
     };
@@ -5108,6 +5085,12 @@ const holeIndex = appState.currentHole - 1;
         });
       }
 
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
+
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
     };
@@ -5190,6 +5173,10 @@ const holeIndex = appState.currentHole - 1;
         <div style="padding: 12px; background: var(--sand); border-radius: 12px; font-size: 14px; line-height: 1.6;">
           ${generateCustomAdvice(weaknesses)}
         </div>
+
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
       `;
       resultDiv.style.display = 'block';
     };
@@ -5526,6 +5513,12 @@ const holeIndex = appState.currentHole - 1;
         }
       }
 
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
+
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
     };
@@ -5679,6 +5672,12 @@ const holeIndex = appState.currentHole - 1;
           </p>
         `;
       }
+
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
 
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
@@ -5875,6 +5874,12 @@ const holeIndex = appState.currentHole - 1;
         `;
       }
 
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
+
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
     };
@@ -6020,6 +6025,12 @@ const holeIndex = appState.currentHole - 1;
         }
       });
 
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
+
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
     };
@@ -6129,6 +6140,12 @@ const holeIndex = appState.currentHole - 1;
           `;
         }
       }
+
+      html += `
+        <button class="secondary-btn" onclick="renderAnalysisPage(document.querySelector('.page-container'))" style="margin-top: 16px;">
+          ← 목록으로
+        </button>
+      `;
 
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
