@@ -4247,6 +4247,35 @@ const holeIndex = appState.currentHole - 1;
         return;
       }
 
+      container.innerHTML = `
+        <h1 class="page-title">📊 통계</h1>
+
+        <div class="section">
+          <h2 class="section-title">통계 유형 선택</h2>
+          <div class="button-group" style="flex-direction: column; gap: 12px;">
+            <button class="secondary-btn" onclick="showOverallStats()">
+              📊 종합 통계 (최근 10라운드)
+            </button>
+            <button class="secondary-btn" onclick="showIndividualRoundStats()">
+              📅 개별 라운드 통계
+            </button>
+          </div>
+        </div>
+
+        <div id="stats-result" class="section" style="display: none;">
+          <!-- 통계 결과가 여기에 표시됩니다 -->
+        </div>
+      `;
+    }
+
+    // ========================================
+    // 종합 통계 (최근 10라운드)
+    // ========================================
+    window.showOverallStats = function() {
+      const resultDiv = document.getElementById('stats-result');
+      if (!resultDiv) return;
+
+      const completedRounds = appState.data.rounds.filter(r => r.status === 'completed');
       const recentRounds = completedRounds.slice(-10);
       
       // 18홀 라운드만 필터링
@@ -4274,7 +4303,7 @@ const holeIndex = appState.currentHole - 1;
       }).length;
       const girPercentage = totalHoles > 0 ? ((girCount / totalHoles) * 100).toFixed(0) : 0;
 
-      // 숏게임 성공률 (70m 이하 샷 또는 shortgame 모드)
+      // 숏게임 성공률
       const shortGameShots = recentRounds.flatMap(r => 
         r.holes.flatMap(h => h.shots || [])
       ).filter(s => {
@@ -4284,34 +4313,21 @@ const holeIndex = appState.currentHole - 1;
       const shortGameSuccess = shortGameShots.filter(s => s.result.onGreen === true).length;
       const shortGamePercentage = shortGameShots.length > 0 ? ((shortGameSuccess / shortGameShots.length) * 100).toFixed(0) : 0;
 
-      // 벙커 탈출률 (벙커샷 → 온그린 성공률)
+      // 벙커 탈출률
       const bunkerShots = recentRounds.flatMap(r => 
         r.holes.flatMap(h => h.shots || [])
       ).filter(s => s.shotMode === 'bunker');
-      
       const bunkerSuccess = bunkerShots.filter(s => s.result.onGreen === true).length;
       const bunkerSuccessPercentage = bunkerShots.length > 0 ? ((bunkerSuccess / bunkerShots.length) * 100).toFixed(0) : 0;
 
-      // 퍼팅 통계
+      // 평균 퍼팅
       const totalPutts = recentRounds.reduce((sum, r) => 
         sum + r.holes.reduce((s, h) => s + (h.putting?.putts || 0), 0), 0
       );
       const avgPutts = totalHoles > 0 ? (totalPutts / totalHoles).toFixed(1) : 0;
-      
-      // 퍼팅 횟수별 통계
-      const puttCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
-      recentRounds.forEach(r => {
-        r.holes.forEach(h => {
-          const putts = h.putting?.putts || 0;
-          if (putts >= 1 && putts <= 4) {
-            puttCounts[putts]++;
-          }
-        });
-      });
 
-      // HTML 생성
-      container.innerHTML = `
-        <h1 class="page-title">📊 통계</h1>
+      resultDiv.innerHTML = `
+        <h2 class="section-title">📊 종합 통계</h2>
         <p style="opacity: 0.7; margin-bottom: 12px; font-size: 13px;">
           최근 ${recentRounds.length}라운드 (평균 타수는 18홀 ${fullRounds.length}라운드 기준)
         </p>
@@ -4358,32 +4374,6 @@ const holeIndex = appState.currentHole - 1;
         </div>
 
         <div class="section" style="margin-top: 16px;">
-          <h2 class="section-title">⛳ 퍼팅 상세 통계</h2>
-          <div class="par-summary">
-            <div class="par-summary-row">
-              <span>평균 퍼팅 (홀당)</span>
-              <span><b>${avgPutts}개</b></span>
-            </div>
-            <div class="par-summary-row">
-              <span>1퍼팅</span>
-              <span><b>${puttCounts[1]}회</b> (${totalHoles > 0 ? ((puttCounts[1] / totalHoles) * 100).toFixed(0) : 0}%)</span>
-            </div>
-            <div class="par-summary-row">
-              <span>2퍼팅</span>
-              <span><b>${puttCounts[2]}회</b> (${totalHoles > 0 ? ((puttCounts[2] / totalHoles) * 100).toFixed(0) : 0}%)</span>
-            </div>
-            <div class="par-summary-row">
-              <span>3퍼팅</span>
-              <span><b>${puttCounts[3]}회</b> (${totalHoles > 0 ? ((puttCounts[3] / totalHoles) * 100).toFixed(0) : 0}%)</span>
-            </div>
-            <div class="par-summary-row">
-              <span>4퍼팅</span>
-              <span><b>${puttCounts[4]}회</b> (${totalHoles > 0 ? ((puttCounts[4] / totalHoles) * 100).toFixed(0) : 0}%)</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="section" style="margin-top: 16px;">
           <h2 class="section-title">🏌️ 클럽별 평균 거리</h2>
           <div class="club-list">
             ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => {
@@ -4398,7 +4388,151 @@ const holeIndex = appState.currentHole - 1;
           </div>
         </div>
       `;
-    }
+      
+      resultDiv.style.display = 'block';
+    };
+
+    // ========================================
+    // 개별 라운드 통계
+    // ========================================
+    window.showIndividualRoundStats = function() {
+      const resultDiv = document.getElementById('stats-result');
+      if (!resultDiv) return;
+
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed').reverse();
+      
+      if (rounds.length === 0) {
+        resultDiv.innerHTML = '<p style="text-align:center; opacity:0.7;">완료된 라운드가 없습니다.</p>';
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      resultDiv.innerHTML = `
+        <h2 class="section-title">📅 개별 라운드 통계</h2>
+        <p style="margin-bottom: 16px; opacity: 0.8;">통계를 볼 라운드를 선택하세요</p>
+        
+        ${rounds.map((round, idx) => {
+          const s = calcRoundScores(round);
+          const actualIndex = appState.data.rounds.length - 1 - idx;
+          return `
+            <button class="course-btn" onclick="showSpecificRoundStats(${actualIndex})" style="margin-bottom: 12px; text-align: left;">
+              <div class="course-info">
+                <div class="course-name">
+                  ${new Date(round.date).toLocaleDateString('ko-KR')} - ${round.course}
+                </div>
+                <div class="course-details">
+                  ${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar}) • ${round.holes.length}홀
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('')}
+      `;
+      
+      resultDiv.style.display = 'block';
+    };
+
+    // ========================================
+    // 특정 라운드 상세 통계
+    // ========================================
+    window.showSpecificRoundStats = function(roundIndex) {
+      const resultDiv = document.getElementById('stats-result');
+      if (!resultDiv) return;
+
+      const round = appState.data.rounds[roundIndex];
+      if (!round) return;
+
+      const s = calcRoundScores(round);
+      
+      // 전체 퍼팅 수
+      const totalPutts = round.holes.reduce((sum, h) => sum + (h.putting?.putts || 0), 0);
+      const avgPutts = round.holes.length > 0 ? (totalPutts / round.holes.length).toFixed(1) : 0;
+      
+      // 퍼팅 횟수별 통계 (3퍼팅까지만)
+      const puttCounts = { 1: 0, 2: 0, 3: 0 };
+      round.holes.forEach(h => {
+        const putts = h.putting?.putts || 0;
+        if (putts === 1) puttCounts[1]++;
+        else if (putts === 2) puttCounts[2]++;
+        else if (putts >= 3) puttCounts[3]++;
+      });
+
+      // 페어웨이 적중률
+      const teeShots = round.holes.filter(h => h.shots && h.shots.length > 0).map(h => h.shots[0]);
+      const fairwayHits = teeShots.filter(s => s.result.landing === 'fairway').length;
+      const fairwayRate = teeShots.length > 0 ? Math.round((fairwayHits / teeShots.length) * 100) : 0;
+
+      // GIR
+      const girCount = round.holes.filter(h => {
+        const shotsToGreen = h.shots ? h.shots.findIndex(s => s.result.onGreen) : -1;
+        return shotsToGreen !== -1 && (shotsToGreen + 1) <= h.par - 2;
+      }).length;
+      const girRate = round.holes.length > 0 ? Math.round((girCount / round.holes.length) * 100) : 0;
+
+      resultDiv.innerHTML = `
+        <button class="secondary-btn" onclick="showIndividualRoundStats()" style="margin-bottom: 16px;">
+          ← 목록으로
+        </button>
+
+        <h2 class="section-title">📅 ${round.course}</h2>
+        <p style="opacity: 0.7; margin-bottom: 12px; font-size: 13px;">
+          ${new Date(round.date).toLocaleDateString('ko-KR')} • ${round.holes.length}홀
+        </p>
+
+        <div class="par-summary">
+          <div class="par-summary-row">
+            <span>Gross 스코어</span>
+            <span><b>${s.gross}타 (Par ${s.scoreToPar > 0 ? '+' : ''}${s.scoreToPar})</b></span>
+          </div>
+          <div class="par-summary-row">
+            <span>Nett 스코어</span>
+            <span><b>${s.nett}타 (Par ${s.nett - s.totalPar > 0 ? '+' : ''}${s.nett - s.totalPar})</b></span>
+          </div>
+          <div class="par-summary-row">
+            <span>Stableford</span>
+            <span><b>${s.stableford} pts</b></span>
+          </div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">📊 주요 통계</h3>
+        <div class="par-summary">
+          <div class="par-summary-row">
+            <span>페어웨이 적중률</span>
+            <span><b>${fairwayRate}% (${fairwayHits}/${teeShots.length})</b></span>
+          </div>
+          <div class="par-summary-row">
+            <span>GIR (그린 적중률)</span>
+            <span><b>${girRate}% (${girCount}/${round.holes.length})</b></span>
+          </div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">⛳ 퍼팅 통계</h3>
+        <div class="par-summary">
+          <div class="par-summary-row">
+            <span>전체 퍼팅 수</span>
+            <span><b>${totalPutts}개</b></span>
+          </div>
+          <div class="par-summary-row">
+            <span>평균 퍼팅 (홀당)</span>
+            <span><b>${avgPutts}개</b></span>
+          </div>
+          <div class="par-summary-row">
+            <span>1퍼팅</span>
+            <span><b>${puttCounts[1]}회</b> (${round.holes.length > 0 ? Math.round((puttCounts[1] / round.holes.length) * 100) : 0}%)</span>
+          </div>
+          <div class="par-summary-row">
+            <span>2퍼팅</span>
+            <span><b>${puttCounts[2]}회</b> (${round.holes.length > 0 ? Math.round((puttCounts[2] / round.holes.length) * 100) : 0}%)</span>
+          </div>
+          <div class="par-summary-row">
+            <span>3퍼팅 이상</span>
+            <span><b>${puttCounts[3]}회</b> (${round.holes.length > 0 ? Math.round((puttCounts[3] / round.holes.length) * 100) : 0}%)</span>
+          </div>
+        </div>
+      `;
+      
+      resultDiv.style.display = 'block';
+    };
 
     // ========================================
     // HISTORY PAGE
