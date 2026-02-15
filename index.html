@@ -1602,23 +1602,10 @@ case 4: renderSettingsPage(container); break;
         history.pushState(null, '', location.href);
       }
 
-      // 라운드 진행 중이 아닐 때만 백버튼과 홈버튼 표시
+      // 라운드 진행 중이 아닐 때만 홈버튼 표시
       if (!appState.activeRound) {
-        // 홈이 아닌 페이지에서 백버튼 표시
+        // 홈이 아닌 페이지에서 홈버튼 표시
         if (appState.currentPage !== 0) {
-          const backBtn = document.createElement('button');
-          backBtn.className = 'back-button';
-          backBtn.innerHTML = '&#8592;';
-          backBtn.onclick = function() {
-            if (appState.pageHistory.length > 0) {
-              appState.currentPage = appState.pageHistory.pop();
-            } else {
-              appState.currentPage = 0;
-            }
-            render();
-          };
-          app.appendChild(backBtn);
-          
           // 홈 버튼 추가 (우측 상단)
           const homeBtn = document.createElement('button');
           homeBtn.className = 'home-button';
@@ -2036,16 +2023,16 @@ window.goToPage = function(page) {
         </div>
       `;
 
-      // ====== 티박스 선택 화면 전용 뒤로가기 버튼 ======
-      const backBtn = document.createElement('button');
-      backBtn.className = 'back-button';
-      backBtn.innerHTML = '←';
-      backBtn.onclick = function() {
-        appState.currentPage = 1;   // 라운드 시작 화면으로 이동
+      // ====== 티박스 선택 화면에서도 홈버튼 표시 ======
+      const homeBtn = document.createElement('button');
+      homeBtn.className = 'home-button';
+      homeBtn.innerHTML = '🏠';
+      homeBtn.onclick = function() {
+        appState.pageHistory = [];
+        appState.currentPage = 0;
         render();
       };
-
-  app.appendChild(backBtn);
+      app.appendChild(homeBtn);
 
     }
 
