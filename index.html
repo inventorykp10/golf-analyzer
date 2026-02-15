@@ -4235,16 +4235,13 @@ const holeIndex = appState.currentHole - 1;
       const shortGameSuccess = shortGameShots.filter(s => s.result.onGreen === true).length;
       const shortGamePercentage = shortGameShots.length > 0 ? ((shortGameSuccess / shortGameShots.length) * 100).toFixed(0) : 0;
 
-      // 벙커 세이브율 (벙커에서 나온 후 파 이하로 마무리)
-      const bunkerHoles = recentRounds.flatMap(r => r.holes).filter(h => {
-        return h.shots && h.shots.some(s => s.shotMode === 'bunker');
-      });
-      const bunkerSaves = bunkerHoles.filter(h => {
-        const score = h.score || 0;
-        const par = h.par || 4;
-        return score <= par;
-      }).length;
-      const bunkerSavePercentage = bunkerHoles.length > 0 ? ((bunkerSaves / bunkerHoles.length) * 100).toFixed(0) : 0;
+      // 벙커 탈출률 (벙커샷 → 온그린 성공률)
+      const bunkerShots = recentRounds.flatMap(r => 
+        r.holes.flatMap(h => h.shots || [])
+      ).filter(s => s.shotMode === 'bunker');
+      
+      const bunkerSuccess = bunkerShots.filter(s => s.result.onGreen === true).length;
+      const bunkerSuccessPercentage = bunkerShots.length > 0 ? ((bunkerSuccess / bunkerShots.length) * 100).toFixed(0) : 0;
 
       // 퍼팅 통계
       const totalPutts = recentRounds.reduce((sum, r) => 
@@ -4301,9 +4298,9 @@ const holeIndex = appState.currentHole - 1;
 
           <div class="stat-card">
             <div class="stat-icon">⛳</div>
-            <div class="stat-label">벙커 세이브율</div>
-            <div class="stat-value">${bunkerSavePercentage}%</div>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${bunkerHoles.length}회 진입</div>
+            <div class="stat-label">벙커 탈출률</div>
+            <div class="stat-value">${bunkerSuccessPercentage}%</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${bunkerShots.length}회 시도</div>
           </div>
         </div>
 
