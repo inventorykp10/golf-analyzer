@@ -4309,9 +4309,12 @@ const holeIndex = appState.currentHole - 1;
         });
       });
 
+      // HTML 생성
       container.innerHTML = `
         <h1 class="page-title">📊 통계</h1>
-        <p style="opacity: 0.7; margin-bottom: 8px; font-size: 13px;">최근 ${recentRounds.length}라운드 (평균 타수는 18홀 ${fullRounds.length}라운드 기준)</p>
+        <p style="opacity: 0.7; margin-bottom: 12px; font-size: 13px;">
+          최근 ${recentRounds.length}라운드 (평균 타수는 18홀 ${fullRounds.length}라운드 기준)
+        </p>
 
         <div class="stats-grid">
           <div class="stat-card">
@@ -4329,7 +4332,7 @@ const holeIndex = appState.currentHole - 1;
           
           <div class="stat-card">
             <div class="stat-icon">🎯</div>
-            <div class="stat-label">GIR (그린 적중률)</div>
+            <div class="stat-label">GIR</div>
             <div class="stat-value">${girPercentage}%</div>
           </div>
           
@@ -4343,24 +4346,20 @@ const holeIndex = appState.currentHole - 1;
             <div class="stat-icon">🏖️</div>
             <div class="stat-label">숏게임 성공률</div>
             <div class="stat-value">${shortGamePercentage}%</div>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${shortGameShots.length}회 시도</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${shortGameShots.length}회</div>
           </div>
 
           <div class="stat-card">
             <div class="stat-icon">⛳</div>
             <div class="stat-label">벙커 탈출률</div>
             <div class="stat-value">${bunkerSuccessPercentage}%</div>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${bunkerShots.length}회 시도</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${bunkerShots.length}회</div>
           </div>
         </div>
 
-        <div class="section">
+        <div class="section" style="margin-top: 16px;">
           <h2 class="section-title">⛳ 퍼팅 상세 통계</h2>
           <div class="par-summary">
-            <div class="par-summary-row">
-              <span>전체 퍼팅 수</span>
-              <span><b>${totalPutts}개</b></span>
-            </div>
             <div class="par-summary-row">
               <span>평균 퍼팅 (홀당)</span>
               <span><b>${avgPutts}개</b></span>
@@ -4384,16 +4383,17 @@ const holeIndex = appState.currentHole - 1;
           </div>
         </div>
 
-        <div class="section grow">
-          <h2 class="section-title">클럽별 평균 거리</h2>
+        <div class="section" style="margin-top: 16px;">
+          <h2 class="section-title">🏌️ 클럽별 평균 거리</h2>
           <div class="club-list">
             ${CLUBS.filter(c => CLUB_DISTANCES[c.id].total > 0).map(club => {
               const d = CLUB_DISTANCES[club.id];
               return `
-              <div class="club-item">
-                <span style="display:inline-block;width:10px;height:10px;background:var(--green-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
-                ${club.name}: ${d.total}m
-              </div>`;
+                <div class="club-item">
+                  <span style="display:inline-block;width:10px;height:10px;background:var(--green-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
+                  ${club.name}: ${d.total}m
+                </div>
+              `;
             }).join('')}
           </div>
         </div>
