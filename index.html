@@ -2847,11 +2847,23 @@ const holeIndex = appState.currentHole - 1;
                 return `✓ #${i + 1}: 🚨 리커버리`;
               }
               
+              // 벙커샷/숏게임 특수 처리
+              if (s.shotMode === 'bunker') {
+                const resultText = s.result.onGreen ? '→ 온그린' : (s.result.landing ? `→ ${s.result.landing}` : '→ 오프그린');
+                return `✓ #${i + 1}: ⛳ 벙커샷 ${resultText}`;
+              }
+              
+              if (s.shotMode === 'shortgame') {
+                const resultText = s.result.onGreen ? '→ 온그린' : '→ 오프그린';
+                return `✓ #${i + 1}: 🏌️ 숏게임${s.distance ? ` ${s.distance}m` : ''} ${resultText}`;
+              }
+              
+              // 일반 샷
               const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
               const modeLabel = s.shotMode === 'layup' ? ' 🏌️레이업' : '';
               const resultText = s.result.onGreen ? '온그린' : s.result.landing || '';
               
-              // 해저드, OB, 벙커 표시
+              // 해저드, OB 표시
               let penaltyText = '';
               if (s.isHazard && s.penalty > 0) {
                 penaltyText = ` → Hazard → +${s.penalty} 벌타 #${i + 2} → #${i + 3}샷으로 이동`;
@@ -2964,11 +2976,16 @@ const holeIndex = appState.currentHole - 1;
             `;
           }
           
-          // 파5 샷 #2+: 레이업, 리커버리
+          // 파5 샷 #2+: 어프로치, 레이업, 리커버리
           if (isPar5 && shotNum >= 2) {
             return `
               <div class="section" style="padding: 8px 14px;">
                 <div style="display:flex; gap:6px; max-width:400px; margin:0 auto;">
+                  <button class="choice-btn ${shotMode === 'approach' ? 'selected' : ''}"
+                    onclick="setShotMode('approach')"
+                    style="flex:1; padding:8px 4px; font-size:13px;">
+                    어프로치
+                  </button>
                   <button class="choice-btn ${shotMode === 'layup' ? 'selected' : ''}"
                     onclick="setShotMode('layup')"
                     style="flex:1; padding:8px 4px; font-size:13px;">
@@ -3373,8 +3390,26 @@ const holeIndex = appState.currentHole - 1;
       if (distInput) {
         appState.currentShot.distance = distInput.value;
         const dist = parseInt(distInput.value, 10);
+        
+        // 70미터 이하면 자동으로 숏게임으로 변경
+        if (dist > 0 && dist <= 70) {
+          if (appState.currentShot.shotMode !== 'bunker' && appState.currentShot.shotMode !== 'shortgame') {
+            appState.currentShot.shotMode = 'shortgame';
+            // UI 업데이트를 위해 render 호출 대신 메시지 표시
+            const area = document.getElementById('club-recommendation-area');
+            if (area) {
+              area.innerHTML = `
+                <div class="club-recommendation" style="background: #fff9e6; border-left: 4px solid #d4a574;">
+                  ⛳ <strong>숏게임</strong> (70m 이하) - 온그린 여부만 선택하세요
+                </div>
+              `;
+            }
+            return;
+          }
+        }
+        
         const area = document.getElementById('club-recommendation-area');
-        if (area && dist > 0) {
+        if (area && dist > 0 && dist > 70) {
           const rec = getRecommendedClub(dist);
           if (rec) {
             const d = CLUB_DISTANCES[rec.id];
@@ -3743,9 +3778,43 @@ const holeIndex = appState.currentHole - 1;
           <div class="previous-shots">
             <strong>이전 샷:</strong><br>
             ${appState.shots.map((s, i) => {
+              // 벌타샷은 표시하지 않음 (이전 샷에서 설명됨)
+              if (s.isPenalty) {
+                return '';
+              }
+              
+              // 리커버리샷 처리
+              if (s.isRecovery) {
+                return `✓ #${i + 1}: 🚨 리커버리`;
+              }
+              
+              // 벙커샷/숏게임 특수 처리
+              if (s.shotMode === 'bunker') {
+                const resultText = s.result.onGreen ? '→ 온그린' : (s.result.landing ? `→ ${s.result.landing}` : '→ 오프그린');
+                return `✓ #${i + 1}: ⛳ 벙커샷 ${resultText}`;
+              }
+              
+              if (s.shotMode === 'shortgame') {
+                const resultText = s.result.onGreen ? '→ 온그린' : '→ 오프그린';
+                return `✓ #${i + 1}: 🏌️ 숏게임${s.distance ? ` ${s.distance}m` : ''} ${resultText}`;
+              }
+              
+              // 일반 샷
               const clubName = CLUBS.find(c => c.id === s.club)?.name || '';
-              return `✓ #${i + 1}: ${clubName} → 온그린`;
-            }).join('<br>')}
+              const modeLabel = s.shotMode === 'layup' ? ' 🏌️레이업' : '';
+              const resultText = s.result.onGreen ? '온그린' : s.result.landing || '';
+              
+              // 해저드, OB 표시
+              let penaltyText = '';
+              if (s.isHazard && s.penalty > 0) {
+                penaltyText = ` → Hazard → +${s.penalty} 벌타 #${i + 2} → #${i + 3}샷으로 이동`;
+              } else if (s.isOB && s.penalty > 0) {
+                penaltyText = ` → OB → +${s.penalty} 벌타 #${i + 2} → #${i + 3}샷으로 이동`;
+              }
+              
+              const isBunker = s.result.landing === 'bunker';
+              return `✓ #${i + 1}: ${clubName}${s.distance ? ` ${s.distance}m` : ''}${modeLabel}${resultText && !s.isHazard && !s.isOB && !isBunker ? ' → ' + resultText : ''}${penaltyText}`;
+            }).filter(s => s !== '').join('<br>')}
           </div>
         ` : ''}
 
@@ -4156,11 +4225,43 @@ const holeIndex = appState.currentHole - 1;
       }).length;
       const girPercentage = totalHoles > 0 ? ((girCount / totalHoles) * 100).toFixed(0) : 0;
 
-      // 평균 퍼팅
+      // 숏게임 성공률 (70m 이하 샷 또는 shortgame 모드)
+      const shortGameShots = recentRounds.flatMap(r => 
+        r.holes.flatMap(h => h.shots || [])
+      ).filter(s => {
+        const dist = parseInt(s.distance || 0);
+        return (dist > 0 && dist <= 70) || s.shotMode === 'shortgame';
+      });
+      const shortGameSuccess = shortGameShots.filter(s => s.result.onGreen === true).length;
+      const shortGamePercentage = shortGameShots.length > 0 ? ((shortGameSuccess / shortGameShots.length) * 100).toFixed(0) : 0;
+
+      // 벙커 세이브율 (벙커에서 나온 후 파 이하로 마무리)
+      const bunkerHoles = recentRounds.flatMap(r => r.holes).filter(h => {
+        return h.shots && h.shots.some(s => s.shotMode === 'bunker');
+      });
+      const bunkerSaves = bunkerHoles.filter(h => {
+        const score = h.score || 0;
+        const par = h.par || 4;
+        return score <= par;
+      }).length;
+      const bunkerSavePercentage = bunkerHoles.length > 0 ? ((bunkerSaves / bunkerHoles.length) * 100).toFixed(0) : 0;
+
+      // 퍼팅 통계
       const totalPutts = recentRounds.reduce((sum, r) => 
         sum + r.holes.reduce((s, h) => s + (h.putting?.putts || 0), 0), 0
       );
-      const avgPutts = recentRounds.length > 0 ? (totalPutts / recentRounds.length).toFixed(1) : 0;
+      const avgPutts = totalHoles > 0 ? (totalPutts / totalHoles).toFixed(1) : 0;
+      
+      // 퍼팅 횟수별 통계
+      const puttCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+      recentRounds.forEach(r => {
+        r.holes.forEach(h => {
+          const putts = h.putting?.putts || 0;
+          if (putts >= 1 && putts <= 4) {
+            puttCounts[putts]++;
+          }
+        });
+      });
 
       container.innerHTML = `
         <h1 class="page-title">📊 통계</h1>
@@ -4189,6 +4290,50 @@ const holeIndex = appState.currentHole - 1;
             <div class="stat-icon">⛳</div>
             <div class="stat-label">평균 퍼팅</div>
             <div class="stat-value">${avgPutts}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">🏖️</div>
+            <div class="stat-label">숏게임 성공률</div>
+            <div class="stat-value">${shortGamePercentage}%</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${shortGameShots.length}회 시도</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">⛳</div>
+            <div class="stat-label">벙커 세이브율</div>
+            <div class="stat-value">${bunkerSavePercentage}%</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${bunkerHoles.length}회 진입</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">⛳ 퍼팅 상세 통계</h2>
+          <div class="par-summary">
+            <div class="par-summary-row">
+              <span>전체 퍼팅 수</span>
+              <span><b>${totalPutts}개</b></span>
+            </div>
+            <div class="par-summary-row">
+              <span>평균 퍼팅 (홀당)</span>
+              <span><b>${avgPutts}개</b></span>
+            </div>
+            <div class="par-summary-row">
+              <span>1퍼팅</span>
+              <span><b>${puttCounts[1]}회</b> (${totalHoles > 0 ? ((puttCounts[1] / totalHoles) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="par-summary-row">
+              <span>2퍼팅</span>
+              <span><b>${puttCounts[2]}회</b> (${totalHoles > 0 ? ((puttCounts[2] / totalHoles) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="par-summary-row">
+              <span>3퍼팅</span>
+              <span><b>${puttCounts[3]}회</b> (${totalHoles > 0 ? ((puttCounts[3] / totalHoles) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="par-summary-row">
+              <span>4퍼팅</span>
+              <span><b>${puttCounts[4]}회</b> (${totalHoles > 0 ? ((puttCounts[4] / totalHoles) * 100).toFixed(0) : 0}%)</span>
+            </div>
           </div>
         </div>
 
