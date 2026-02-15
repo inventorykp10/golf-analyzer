@@ -5354,6 +5354,22 @@ const holeIndex = appState.currentHole - 1;
         </div>
 
         <div class="section">
+          <h2 class="section-title">🎯 클럽 거리 보정 (실제 데이터 기반)</h2>
+          <p style="margin-bottom: 12px; opacity: 0.8; line-height: 1.4;">
+            라운드 중 입력한 실제 거리 데이터를 분석하여<br>
+            설정된 클럽 거리와 비교합니다.
+          </p>
+          
+          <button class="secondary-btn" onclick="showClubDistanceComparison()">
+            📊 거리 비교 분석 보기
+          </button>
+          
+          <div id="club-distance-comparison" style="display: none; margin-top: 16px;">
+            <!-- 분석 결과가 여기에 표시됩니다 -->
+          </div>
+        </div>
+
+        <div class="section">
           <h2 class="section-title">골프백 구성 & 거리 정보</h2>
           <p style="margin-bottom: 10px; opacity: 0.6; font-size: 12px;">
             클럽 이름과 거리(m)를 설정하세요. 클럽 추천 및 샷 입력에 사용됩니다.
@@ -5499,6 +5515,221 @@ const holeIndex = appState.currentHole - 1;
         CLUB_DISTANCES = JSON.parse(JSON.stringify(DEFAULT_CLUB_DISTANCES));
         alert('✅ 골프백이 기본 구성으로 초기화되었습니다.');
         render();
+      }
+    };
+
+    // ========================================
+    // CLUB DISTANCE COMPARISON (클럽 거리 보정)
+    // ========================================
+    window.showClubDistanceComparison = function() {
+      const resultDiv = document.getElementById('club-distance-comparison');
+      if (!resultDiv) return;
+
+      // 실제 라운드 데이터에서 클럽별 거리 수집
+      const clubActualDistances = {};
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+      
+      rounds.forEach(round => {
+        round.holes.forEach(hole => {
+          if (!hole.shots) return;
+          
+          hole.shots.forEach(shot => {
+            // 리커버리샷, 벙커샷, 숏게임 제외
+            if (shot.isRecovery || shot.shotMode === 'bunker' || shot.shotMode === 'shortgame') return;
+            
+            const clubId = shot.club;
+            const distance = parseInt(shot.distance);
+            
+            if (clubId && distance > 0) {
+              if (!clubActualDistances[clubId]) {
+                clubActualDistances[clubId] = [];
+              }
+              clubActualDistances[clubId].push(distance);
+            }
+          });
+        });
+      });
+
+      // 비교 분석
+      const comparisons = [];
+      CLUBS.forEach(club => {
+        const actualDistances = clubActualDistances[club.id];
+        const settingDistance = CLUB_DISTANCES[club.id]?.total || 0;
+        
+        if (!actualDistances || actualDistances.length < 3) {
+          // 데이터가 3개 미만이면 분석 불가
+          return;
+        }
+        
+        const avgActual = Math.round(actualDistances.reduce((a, b) => a + b, 0) / actualDistances.length);
+        const diff = avgActual - settingDistance;
+        const diffPercent = settingDistance > 0 ? Math.round((diff / settingDistance) * 100) : 0;
+        
+        comparisons.push({
+          clubId: club.id,
+          clubName: club.name,
+          settingDistance,
+          avgActual,
+          diff,
+          diffPercent,
+          sampleCount: actualDistances.length
+        });
+      });
+
+      if (comparisons.length === 0) {
+        resultDiv.innerHTML = `
+          <p style="text-align: center; opacity: 0.7; padding: 20px;">
+            아직 충분한 데이터가 없습니다.<br>
+            각 클럽당 최소 3회 이상 거리가 기록되어야 분석이 가능합니다.
+          </p>
+        `;
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      // 차이가 큰 순서대로 정렬
+      comparisons.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+
+      let html = `
+        <h3 style="font-size: 16px; color: var(--green-primary); margin-bottom: 12px;">
+          📊 클럽 거리 비교 분석
+        </h3>
+        <p style="font-size: 13px; opacity: 0.8; margin-bottom: 16px;">
+          실제 라운드 데이터 ${rounds.length}개 라운드 분석 결과
+        </p>
+      `;
+
+      comparisons.forEach(c => {
+        const isSignificant = Math.abs(c.diff) >= 5; // 5m 이상 차이나면 유의미
+        const statusColor = isSignificant ? (c.diff > 0 ? '#e74c3c' : '#3498db') : '#95a5a6';
+        const statusIcon = isSignificant ? (c.diff > 0 ? '⚠️' : '✅') : '➖';
+        
+        html += `
+          <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 12px; border-left: 4px solid ${statusColor};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="font-size: 15px;">${statusIcon} ${c.clubName}</strong>
+              <span style="font-size: 12px; opacity: 0.7;">${c.sampleCount}회 기록</span>
+            </div>
+            <div class="par-summary" style="margin: 0;">
+              <div class="par-summary-row">
+                <span>설정 거리</span>
+                <span><b>${c.settingDistance}m</b></span>
+              </div>
+              <div class="par-summary-row">
+                <span>실제 평균</span>
+                <span><b>${c.avgActual}m</b></span>
+              </div>
+              <div class="par-summary-row">
+                <span>차이</span>
+                <span style="color: ${c.diff > 0 ? '#e74c3c' : '#3498db'};">
+                  <b>${c.diff > 0 ? '+' : ''}${c.diff}m (${c.diffPercent > 0 ? '+' : ''}${c.diffPercent}%)</b>
+                </span>
+              </div>
+            </div>
+            ${isSignificant ? `
+              <p style="font-size: 12px; margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                ${c.diff > 0 
+                  ? '💡 실제로는 더 길게 치고 있습니다. 설정 거리를 올리는 것을 권장합니다.' 
+                  : '💡 실제로는 더 짧게 치고 있습니다. 설정 거리를 낮추는 것을 권장합니다.'}
+              </p>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      // 자동 보정 버튼
+      const needsUpdate = comparisons.filter(c => Math.abs(c.diff) >= 5);
+      if (needsUpdate.length > 0) {
+        html += `
+          <button class="primary-btn" onclick="applyClubDistanceCorrection()" style="margin-top: 12px; width: 100%;">
+            🔄 실제 데이터로 자동 보정 (${needsUpdate.length}개 클럽)
+          </button>
+          <p style="font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px;">
+            5m 이상 차이나는 클럽들의 거리를 실제 평균값으로 업데이트합니다.
+          </p>
+        `;
+      } else {
+        html += `
+          <p style="text-align: center; color: var(--green-primary); font-weight: 600; margin-top: 16px;">
+            ✅ 모든 클럽의 설정 거리가 실제 데이터와 잘 맞습니다!
+          </p>
+        `;
+      }
+
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    };
+
+    window.applyClubDistanceCorrection = function() {
+      if (!confirm('실제 라운드 데이터를 기반으로 클럽 거리를 자동 보정하시겠습니까?\n\n5m 이상 차이나는 클럽들의 거리가 업데이트됩니다.')) {
+        return;
+      }
+
+      // 실제 라운드 데이터에서 클럽별 거리 수집 (위 함수와 동일 로직)
+      const clubActualDistances = {};
+      const rounds = appState.data.rounds.filter(r => r.status === 'completed');
+      
+      rounds.forEach(round => {
+        round.holes.forEach(hole => {
+          if (!hole.shots) return;
+          
+          hole.shots.forEach(shot => {
+            if (shot.isRecovery || shot.shotMode === 'bunker' || shot.shotMode === 'shortgame') return;
+            
+            const clubId = shot.club;
+            const distance = parseInt(shot.distance);
+            
+            if (clubId && distance > 0) {
+              if (!clubActualDistances[clubId]) {
+                clubActualDistances[clubId] = [];
+              }
+              clubActualDistances[clubId].push(distance);
+            }
+          });
+        });
+      });
+
+      let updatedCount = 0;
+      const customDistances = {};
+
+      CLUBS.forEach(club => {
+        const actualDistances = clubActualDistances[club.id];
+        const settingDistance = CLUB_DISTANCES[club.id]?.total || 0;
+        
+        if (!actualDistances || actualDistances.length < 3) return;
+        
+        const avgActual = Math.round(actualDistances.reduce((a, b) => a + b, 0) / actualDistances.length);
+        const diff = Math.abs(avgActual - settingDistance);
+        
+        // 5m 이상 차이나면 업데이트
+        if (diff >= 5) {
+          const newTotal = avgActual;
+          const newCarry = Math.round(newTotal * 0.92);
+          const newMax = Math.round(newTotal * 1.05);
+          
+          CLUB_DISTANCES[club.id] = {
+            carry: newCarry,
+            total: newTotal,
+            max: newMax
+          };
+          
+          customDistances[club.id] = {
+            carry: newCarry,
+            total: newTotal,
+            max: newMax
+          };
+          
+          updatedCount++;
+        }
+      });
+
+      if (updatedCount > 0) {
+        saveCustomClubDistances(customDistances);
+        alert(`✅ ${updatedCount}개 클럽의 거리가 업데이트되었습니다.`);
+        showClubDistanceComparison(); // 결과 새로고침
+        render();
+      } else {
+        alert('업데이트할 클럽이 없습니다.');
       }
     };
 
