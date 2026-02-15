@@ -5541,8 +5541,12 @@ const holeIndex = appState.currentHole - 1;
         short: 0,
         long: 0,
         left: 0,
-        right: 0
+        right: 0,
+        clubs: {}  // 클럽별 통계 추가
       }));
+
+      // 숏게임 클럽별 전체 통계
+      const shortGameClubStats = {};
 
       // 전체 거리 구간별 분석
       const distanceRanges = [
@@ -5580,6 +5584,23 @@ const holeIndex = appState.currentHole - 1;
                   if (shot.result.direction.includes('long')) range.long++;
                   if (shot.result.direction.includes('left')) range.left++;
                   if (shot.result.direction.includes('right')) range.right++;
+                }
+
+                // 클럽별 통계 (거리대별)
+                const clubId = shot.club;
+                if (clubId) {
+                  if (!range.clubs[clubId]) {
+                    range.clubs[clubId] = { total: 0, onGreen: 0 };
+                  }
+                  range.clubs[clubId].total++;
+                  if (shot.result.onGreen) range.clubs[clubId].onGreen++;
+
+                  // 전체 숏게임 클럽 통계
+                  if (!shortGameClubStats[clubId]) {
+                    shortGameClubStats[clubId] = { total: 0, onGreen: 0 };
+                  }
+                  shortGameClubStats[clubId].total++;
+                  if (shot.result.onGreen) shortGameClubStats[clubId].onGreen++;
                 }
               }
             }
@@ -5622,8 +5643,36 @@ const holeIndex = appState.currentHole - 1;
             `;
           }
 
-          html += `
+          html += `</div>`;
+
+          // 클럽별 세부 통계
+          const clubList = Object.keys(range.clubs);
+          if (clubList.length > 0) {
+            html += `
+              <div style="margin-top: 12px; padding: 10px; background: var(--cream); border-radius: 8px;">
+                <strong style="font-size: 13px; color: var(--brown);">🏌️ 사용 클럽:</strong>
+                <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px;">
+            `;
+            
+            clubList.forEach(clubId => {
+              const clubData = range.clubs[clubId];
+              const clubName = CLUBS.find(c => c.id === clubId)?.name || clubId;
+              const clubRate = Math.round((clubData.onGreen / clubData.total) * 100);
+              
+              html += `
+                <div style="padding: 4px 10px; background: white; border-radius: 6px; font-size: 12px; border: 1px solid var(--sand);">
+                  <strong>${clubName}</strong>: ${clubData.total}회 (${clubRate}%)
+                </div>
+              `;
+            });
+
+            html += `
+                </div>
               </div>
+            `;
+          }
+
+          html += `
             </div>
           `;
         }
@@ -5648,6 +5697,44 @@ const holeIndex = appState.currentHole - 1;
       });
 
       html += `</div>`;
+
+      // 숏게임 클럽별 전체 통계
+      const shortGameClubList = Object.keys(shortGameClubStats)
+        .map(clubId => {
+          const clubData = shortGameClubStats[clubId];
+          const clubName = CLUBS.find(c => c.id === clubId)?.name || clubId;
+          const rate = Math.round((clubData.onGreen / clubData.total) * 100);
+          return { clubId, clubName, ...clubData, rate };
+        })
+        .sort((a, b) => b.total - a.total);
+
+      if (shortGameClubList.length > 0) {
+        html += `
+          <h3 style="margin: 16px 0 8px 0; font-size: 16px; color: var(--green-primary);">🏌️ 숏게임 클럽별 통계</h3>
+          <div class="par-summary">
+        `;
+
+        shortGameClubList.forEach(club => {
+          html += `
+            <div class="par-summary-row">
+              <span>${club.clubName}</span>
+              <span><b>${club.total}회 • ${club.rate}% (${club.onGreen}/${club.total})</b></span>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+
+        // 가장 효과적인 클럽 추천
+        const bestClub = shortGameClubList.filter(c => c.total >= 3).sort((a, b) => b.rate - a.rate)[0];
+        if (bestClub) {
+          html += `
+            <p style="margin-top: 12px; padding: 12px; background: var(--sand); border-radius: 8px; font-size: 14px;">
+              💡 <b>${bestClub.clubName}</b>이(가) 가장 효과적입니다! (온그린율 ${bestClub.rate}%)
+            </p>
+          `;
+        }
+      }
 
       // 약점 진단
       const weakRanges = rangeStats.filter(r => r.total >= 5 && (r.onGreen / r.total) < 0.5);
