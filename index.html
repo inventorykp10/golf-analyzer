@@ -1489,7 +1489,7 @@ function startRound() {
   };
   S.currentHole = holeOrder[0];
   S.holeStep = 'info';
-  S.holeInput = { score:null, putts:null, fairway:null, gir:null, remainDist:'' };
+  S.holeInput = { score: getHolePar({courseId: course.id, tee: S.selectedTee}, holeOrder[0]), putts:2, fairway:null, gir:null, remainDist:'' };
   sessionFeedback = {};
   initCaddie();
 
@@ -1520,16 +1520,30 @@ function renderRoundPage() {
   const played = round.holes.length;
 
   // 헤더
+  const nettDiff = sc.nett - sc.totalPar;
   const header = document.createElement('div');
   header.className = 'hole-header';
   header.innerHTML = `
     <div>
       <div class="hole-num-big">H${holeNum}</div>
       <div class="hole-meta">Par ${par}${dist ? ' · '+dist+'m' : ''} · ${S.selectedTee==='blue'?'🔵':'⚪'}</div>
+      <div style="font-size:11px; opacity:0.55; margin-top:3px;">${played}/${totalHoles}홀 완료</div>
     </div>
     <div class="hole-score-live">
-      <div class="hole-score-num">${sc.gross||'-'}</div>
-      <div class="hole-score-lbl">Gross · ${played}/${totalHoles}홀</div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="text-align:center;">
+          <div style="font-size:9px; opacity:0.55; text-transform:uppercase; letter-spacing:0.5px;">Gross</div>
+          <div class="hole-score-num">${played > 0 ? sc.gross : '-'}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:9px; opacity:0.55; text-transform:uppercase; letter-spacing:0.5px;">Nett</div>
+          <div class="hole-score-num" style="font-size:20px;">${played > 0 ? formatScoreToPar(nettDiff) : '-'}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:9px; opacity:0.55; text-transform:uppercase; letter-spacing:0.5px;">STB</div>
+          <div class="hole-score-num" style="font-size:20px;">${played > 0 ? sc.stableford : '-'}</div>
+        </div>
+      </div>
     </div>`;
   wrap.appendChild(header);
 
@@ -1573,7 +1587,12 @@ function renderHoleInfo(wrap, round, holeNum, par, dist) {
   const startBtn = document.createElement('button');
   startBtn.className = 'btn-primary';
   startBtn.textContent = `홀 입력 시작 →`;
-  startBtn.onclick = () => { S.holeStep='input'; S.holeInput={score:null,putts:null,fairway:null,gir:null,remainDist:''}; render(); };
+  startBtn.onclick = () => {
+    const p = getHolePar(S.activeRound, holeNum);
+    S.holeStep='input';
+    S.holeInput={ score:p, putts:2, fairway:null, gir:null, remainDist:'' };
+    render();
+  };
   c.appendChild(startBtn);
 
   wrap.appendChild(c);
@@ -1584,13 +1603,19 @@ function renderHoleInputForm(wrap, round, holeNum, par, dist) {
 
   const form = document.createElement('div');
 
-  // 1. 타수
+  // 1. 타수 (Par 기본값)
+  const scoreDiff = (hi.score !== null ? hi.score : par) - par;
+  const scoreChipCls = scoreDiff <= -2 ? 'chip-eagle' : scoreDiff === -1 ? 'chip-birdie' : scoreDiff === 0 ? 'chip-par' : scoreDiff === 1 ? 'chip-bogey' : scoreDiff === 2 ? 'chip-double' : 'chip-triple';
+  const scoreChipLbl = scoreDiff <= -2 ? '이글↓' : scoreDiff === -1 ? '버디' : scoreDiff === 0 ? 'Par' : scoreDiff === 1 ? '보기' : scoreDiff === 2 ? '더블' : `+${scoreDiff}`;
   form.innerHTML += `
     <div class="card">
-      <div class="section-title">타수</div>
-      <div class="stepper" id="score-stepper">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div class="section-title" style="margin:0;">타수 <span style="font-weight:400; font-size:11px; color:var(--brown-light);">(퍼팅 포함)</span></div>
+        <span class="score-chip ${scoreChipCls}">${scoreChipLbl}</span>
+      </div>
+      <div class="stepper">
         <button class="stepper-btn" onclick="window._adjScore(-1)">−</button>
-        <div class="stepper-val">${hi.score !== null ? hi.score : '-'}</div>
+        <div class="stepper-val">${hi.score !== null ? hi.score : par}</div>
         <button class="stepper-btn" onclick="window._adjScore(1)">+</button>
       </div>
     </div>`;
@@ -1601,13 +1626,13 @@ function renderHoleInputForm(wrap, round, holeNum, par, dist) {
     render();
   };
 
-  // 2. 퍼팅
+  // 2. 퍼팅 (기본값 2)
   form.innerHTML += `
     <div class="card">
-      <div class="section-title">퍼팅 수</div>
+      <div class="section-title" style="margin-bottom:10px;">퍼팅 수 <span style="font-weight:400; font-size:11px; color:var(--brown-light);">(그린 위에서 친 횟수)</span></div>
       <div class="stepper">
         <button class="stepper-btn" onclick="window._adjPutt(-1)">−</button>
-        <div class="stepper-val">${hi.putts !== null ? hi.putts : '-'}</div>
+        <div class="stepper-val">${hi.putts !== null ? hi.putts : 2}</div>
         <button class="stepper-btn" onclick="window._adjPutt(1)">+</button>
       </div>
     </div>`;
@@ -1618,18 +1643,14 @@ function renderHoleInputForm(wrap, round, holeNum, par, dist) {
     render();
   };
 
-  // 3. 페어웨이 (파4/5만)
+  // 3. 페어웨이 (파4/5만 — 적중/미스만)
   if (par === 4 || par === 5) {
     form.innerHTML += `
       <div class="card">
-        <div class="section-title">페어웨이 안착</div>
+        <div class="section-title" style="margin-bottom:10px;">페어웨이</div>
         <div class="choice-row">
-          <button class="choice-btn ${hi.fairway==='hit'?'selected':''}" onclick="window._setFairway('hit')">✅ 페어웨이</button>
-          <button class="choice-btn ${hi.fairway==='left'?'selected':''}" onclick="window._setFairway('left')">← 좌러프</button>
-        </div>
-        <div class="choice-row" style="margin-top:6px;">
-          <button class="choice-btn ${hi.fairway==='right'?'selected':''}" onclick="window._setFairway('right')">우러프 →</button>
-          <button class="choice-btn ${hi.fairway==='other'?'selected':''}" onclick="window._setFairway('other')">OB/해저드</button>
+          <button class="choice-btn ${hi.fairway==='hit'?'selected':''}" onclick="window._setFairway('hit')">✅ 안착</button>
+          <button class="choice-btn ${hi.fairway==='miss'?'selected':''}" onclick="window._setFairway('miss')">❌ 미스</button>
         </div>
       </div>`;
     window._setFairway = (v) => { hi.fairway = v; render(); };
@@ -1979,7 +2000,8 @@ function completeHole() {
   const nextIdx = round.holes.length;
   S.currentHole = round.holeOrder[nextIdx];
   S.holeStep = 'info';
-  S.holeInput = { score:null, putts:null, fairway:null, gir:null, remainDist:'' };
+  const nextPar = getHolePar(round, S.currentHole);
+  S.holeInput = { score: nextPar, putts:2, fairway:null, gir:null, remainDist:'' };
   initCaddie();
   render();
 }
