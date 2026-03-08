@@ -1629,7 +1629,7 @@ function renderHoleInputForm(wrap, round, holeNum, par, dist) {
   // 2. 퍼팅 (기본값 2)
   form.innerHTML += `
     <div class="card">
-      <div class="section-title" style="margin-bottom:10px;">퍼팅 수 <span style="font-weight:400; font-size:11px; color:var(--brown-light);">(그린 위에서 친 횟수)</span></div>
+      <div class="section-title" style="margin-bottom:10px;">퍼팅 수</div>
       <div class="stepper">
         <button class="stepper-btn" onclick="window._adjPutt(-1)">−</button>
         <div class="stepper-val">${hi.putts !== null ? hi.putts : 2}</div>
@@ -1708,17 +1708,29 @@ function renderCaddiePanel(caddie) {
   // 거리 입력
   const distRow = document.createElement('div');
   distRow.style.cssText = 'display:flex; gap:8px; align-items:center; margin-bottom:12px;';
-  distRow.innerHTML = `
-    <input style="flex:1; padding:10px 12px; border:none; border-radius:10px;
-      background:rgba(255,255,255,0.12); color:white; font-size:20px;
-      font-family:'DM Mono',monospace; font-weight:500; outline:none;"
-      type="number" inputmode="numeric" placeholder="남은 거리 (m)"
-      value="${esc(caddie.remainDist)}"
-      oninput="S.caddie.remainDist=this.value; window._caddieUpdate();">
-    <span style="font-size:14px; opacity:0.6; flex-shrink:0;">m</span>`;
+  const distInput = document.createElement('input');
+  distInput.style.cssText = 'flex:1; padding:10px 12px; border:none; border-radius:10px; background:rgba(255,255,255,0.12); color:white; font-size:22px; font-family:"DM Mono",monospace; font-weight:500; outline:none; -webkit-appearance:none;';
+  distInput.type = 'number';
+  distInput.inputMode = 'numeric';
+  distInput.placeholder = '남은 거리';
+  distInput.value = caddie.remainDist || '';
+  // 입력 중에는 저장만, 포커스 해제 시 렌더
+  distInput.addEventListener('input', () => {
+    S.caddie.remainDist = distInput.value;
+  });
+  distInput.addEventListener('blur', () => {
+    S.caddie.remainDist = distInput.value;
+    render();
+  });
+  distInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { distInput.blur(); }
+  });
+  const mLabel = document.createElement('span');
+  mLabel.style.cssText = 'font-size:16px; opacity:0.6; flex-shrink:0;';
+  mLabel.textContent = 'm';
+  distRow.appendChild(distInput);
+  distRow.appendChild(mLabel);
   wrap.appendChild(distRow);
-
-  window._caddieUpdate = () => { render(); };
 
   // 조건 토글 버튼들
   const toggles = document.createElement('div');
